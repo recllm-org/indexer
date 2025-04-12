@@ -10,8 +10,10 @@ class Client:
 
 	@staticmethod
 	def supabase():
-		return supabase.create_client(Client.envars['SUPABASE_URL'], Client.envars['SUPABASE_KEY'])
+		client = supabase.create_client(Client.envars.get('SUPABASE_URL'), Client.envars.get('SUPABASE_KEY'))
+		client.rpc('sql', 'CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;')
+		return client
 	
 	@staticmethod
 	def gemini():
-		return genai.Client(Client.envars['GEMINI_API_KEY'])
+		return genai.Client(Client.envars.get('GEMINI_API_KEY'))
