@@ -1,12 +1,5 @@
 class Config:
-  def __init__(self, table_name, embedding_dim, use_existing_table):
-    self.table_name = table_name
+  def __init__(self, user_tables, item_tables, embedding_dim):
+    self.user_tables = user_tables # {'table_class': 'table_name'}
+    self.item_tables = item_tables # {'table_class': 'table_name'}
     self.embedding_dim = embedding_dim
-    self.use_existing_table = use_existing_table
-    self.columns = []
-  
-  def add_columns(self, columns):
-    if not self.use_existing_table:
-      self.columns.extend(columns)
-    else:
-      raise ValueError('use_existing_table is True, so columns cannot be added!')

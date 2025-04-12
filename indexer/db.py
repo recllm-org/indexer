@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, MetaData, Table, Column
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
+from sqlalchemy.orm import sessionmaker, mapped_column, DeclarativeBase
+from sqlalchemy.ext.automap import automap_base
 from pgvector.sqlalchemy import Vector
 from .client import Client
 from dotenv import load_dotenv
@@ -9,29 +9,54 @@ from dotenv import load_dotenv
 
 class Database:
   def __init__(self, config):
-    envars = load_dotenv('.env')
     self.config = config
     # supabase
+    self.client = Client.supabase()
+    # sqlalchemy
+    self.engine = create_engine(Database.get_connection_string())
+    self.Session = sessionmaker(bind=self.engine)
+    self.metadata = MetaData(self.engine)
+    self.metadata.reflect()
+    # tables
+    self.get_existing_tables(self.config.user_tables)
+    self.get_existing_tables(self.config.item_tables)
+    self.RecLLMUser, self.RecLLMItem = self.get_or_create_recllm_tables()
+  
+  def push(self, rows):
+    self.client.table(self.config.table_name).upsert(rows).execute()
+  
+  def get_or_create_recllm_tables(self):
+    class Base(DeclarativeBase): metadata = self.metadata
+    # users
+    class RecLLMUser(Base):
+      __tablename__ = 'recllm_users'
+      id = mapped_column(Integer, primary_key=True)
+      table = mapped_column(String)
+      user_id = mapped_column(Integer)
+      embedding = mapped_column(Vector(dimensions=self.config.embedding_dim))
+    # items
+    class RecLLMItem(Base):
+      __tablename__ = 'recllm_items'
+      id = mapped_column(Integer, primary_key=True)
+      table = mapped_column(String)
+      item_id = mapped_column(Integer)
+      embedding = mapped_column(Vector(dimensions=self.config.embedding_dim))
+      summary = mapped_column(String)
+    self.metadata.create_all(self.engine)
+    return RecLLMUser, RecLLMItem
+  
+  def get_existing_tables(self, tables):
+    Base = automap_base(self.metadata)
+    Base.prepare()
+    for table_class, table_name in tables.items():
+      self.__setattr__(table_class, Base.classes[table_name])
+  
+  @staticmethod
+  def get_connection_string():
+    envars = load_dotenv('.env')
     DB_USERNAME = envars.get('DB_USERNAME')
     DB_PASSWORD = envars.get('DB_PASSWORD')
     DB_HOST = envars.get('DB_HOST')
     DB_PORT = envars.get('DB_PORT')
     DB_NAME = envars.get('DB_NAME')
-    self.client = Client.supabase()
-    # sqlalchemy
-    self.engine = create_engine(f'postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}')
-    self.Session = sessionmaker(bind=self.engine)
-    self.metadata = MetaData()
-    self.metadata.reflect(bind=self.engine)
-    self.Base = declarative_base()
-    self.table = self.get_or_create_table()
-  
-  def get_or_create_table(self):
-    embedding_column = Column('embedding', Vector(dimensions=self.config.embedding_dim))
-    extended_columns = self.config.columns + [embedding_column]
-    table = Table(self.config.table_name, self.metadata, *extended_columns, extend_existing=True, autoload_with=self.engine)
-    self.metadata.create_all(self.engine)
-    return table
-  
-  def push(self, rows):
-    self.client.table(self.config.table_name).upsert(rows).execute()
+    return f'postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
