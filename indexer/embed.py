@@ -3,11 +3,12 @@ from .client import Client
 
 
 class Embedder:
-  def __init__(self, model='gemini-embedding-exp-03-07', task='SEMANTIC_SIMILARITY'):
+  def __init__(self, config):
+    self.config = config
     self.client = Client.gemini()
-    self.model = model
-    self.task = task
+    self.model = config.model
+    self.task = config.task
   
   def embed(self, contents):
-    result = self.client.models.embed_content(model=self.model, contents=contents, task_type=self.task)
+    result = self.client.models.embed_content(model=self.model, contents=contents, config={'task_type': self.task, 'output_dimensionality': self.config.embedding_dim})
     return result.embeddings

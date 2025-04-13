@@ -34,6 +34,7 @@ class Database:
       tablename = mapped_column(String)
       user_id = mapped_column(Integer)
       embedding = mapped_column(Vector(dimensions=self.config.embedding_dim))
+      context = mapped_column(String)
     # items
     class RecLLMItems(Base):
       __tablename__ = 'recllm_items'
@@ -41,6 +42,7 @@ class Database:
       tablename = mapped_column(String)
       item_id = mapped_column(Integer)
       embedding = mapped_column(Vector(dimensions=self.config.embedding_dim))
+      context = mapped_column(String)
     self.metadata.create_all(self.engine)
     self.RecLLMUsers = RecLLMUsers
     self.RecLLMItems = RecLLMItems
