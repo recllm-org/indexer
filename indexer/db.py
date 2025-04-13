@@ -20,7 +20,7 @@ class Database:
     # tables
     self.get_existing_tables(self.config.user_tables)
     self.get_existing_tables(self.config.item_tables)
-    self.RecLLMUser, self.RecLLMItem = self.get_or_create_recllm_tables()
+    self.get_or_create_recllm_tables()
   
   def push(self, rows):
     self.client.table(self.config.table_name).upsert(rows).execute()
@@ -28,27 +28,27 @@ class Database:
   def get_or_create_recllm_tables(self):
     class Base(DeclarativeBase): metadata = self.metadata
     # users
-    class RecLLMUser(Base):
+    class RecLLMUsers(Base):
       __tablename__ = 'recllm_users'
-      id = mapped_column(Integer, primary_key=True)
-      table = mapped_column(String)
+      id = mapped_column(Integer, primary_key=True, autoincrement=True)
+      tablename = mapped_column(String)
       user_id = mapped_column(Integer)
       embedding = mapped_column(Vector(dimensions=self.config.embedding_dim))
     # items
-    class RecLLMItem(Base):
+    class RecLLMItems(Base):
       __tablename__ = 'recllm_items'
-      id = mapped_column(Integer, primary_key=True)
-      table = mapped_column(String)
+      id = mapped_column(Integer, primary_key=True, autoincrement=True)
+      tablename = mapped_column(String)
       item_id = mapped_column(Integer)
       embedding = mapped_column(Vector(dimensions=self.config.embedding_dim))
-      summary = mapped_column(String)
     self.metadata.create_all(self.engine)
-    return RecLLMUser, RecLLMItem
+    self.RecLLMUsers = RecLLMUsers
+    self.RecLLMItems = RecLLMItems
   
   def get_existing_tables(self, tables):
     Base = automap_base(self.metadata)
     Base.prepare()
-    for table_class, table_name in tables.items():
+    for table_name, table_class in tables.items():
       self.__setattr__(table_class, Base.classes[table_name])
   
   @staticmethod
