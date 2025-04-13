@@ -9,7 +9,9 @@ class Indexer:
     self.db = Database(config)
     self.embedder = Embedder(config)
   
-  def index(self, rows, context_constructor, content_constructor):
+  def index(self, rows, context_constructor, content_constructor, context_constructor_kwargs=None, content_constructor_kwargs=None):
+    context_constructor_kwargs = context_constructor_kwargs or {}
+    content_constructor_kwargs = content_constructor_kwargs or {}
     with self.db.Session() as session:
       session.add_all(rows)
       session.flush()
@@ -18,8 +20,8 @@ class Indexer:
       contents = []
       for row in rows:
         table = row.__class__.__table__
-        context = context_constructor(row)
-        content = content_constructor(row)
+        context = context_constructor(row, **context_constructor_kwargs)
+        content = content_constructor(row, **content_constructor_kwargs)
         contexts.append(context)
         contents.append(content)
       embeddings = self.embedder.embed(contents)
@@ -27,8 +29,8 @@ class Indexer:
       for row, embedding, context in zip(rows, embeddings, contexts):
         session.refresh(row)
         recllm_type = None
-        tablename = row.__class__.__tablename__
         table = row.__class__.__table__
+        tablename = table.name
         if tablename in self.config.user_tables:
           recllm_type = 'user'
         elif tablename in self.config.item_tables:

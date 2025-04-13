@@ -1,8 +1,10 @@
 from indexer import Indexer
 from indexer.config import Config
+from indexer.client import Client
+from dataclasses import dataclass
+from google.genai.types import GenerateContentConfig
 import requests
 import time
-from dataclasses import dataclass
 import xml.etree.ElementTree as ET
 
 @dataclass
@@ -124,22 +126,35 @@ config = Config(
 )
 indexer = Indexer(config)
 
-def context_constructor(obj):
-  return f'{obj.title}' # this maybe same as content or different according to requirements
+def context_constructor(obj, gemini_client): # this maybe same as content or different according to requirements
+  chat = gemini_client.chats.create(
+    model='gemini-2.0-flash-lite',
+    config=GenerateContentConfig(
+      system_instruction='''Generate a super concise TL;DR (max 5 sentences) of the paper based on the title and abstract.
+      It need not make grammatical sense, but should be scientifically accurate.
+      Output should only contain the contents of the TL;DR, no other text.
+      '''
+    )
+  )
+  response = chat.send_message(f'{obj.title}\n {obj.abstract}')
+  return response.text
 
 def content_constructor(obj):
   return f'{obj.title}\n {obj.abstract}'
 
 fetcher = ArxivFetcher()
-papers = fetcher.fetch_papers(max_results=10)
-rows = []
-for paper in papers:
-  rows.append(indexer.db.Papers(
-    arxiv_id=paper.arxiv_id,
-    title=paper.title,
-    authors=paper.authors,
-    abstract=paper.abstract,
-    submitted_date=paper.submitted_date,
-    categories=paper.categories
-  ))
-indexer.index(rows, context_constructor, content_constructor)
+NUM_FETCHES = 10
+MAX_PER_FETCH = 20
+for _ in range(NUM_FETCHES):
+  papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH)
+  rows = []
+  for paper in papers:
+    rows.append(indexer.db.Papers(
+      arxiv_id=paper.arxiv_id,
+      title=paper.title,
+      authors=paper.authors,
+      abstract=paper.abstract,
+      submitted_date=paper.submitted_date,
+      categories=paper.categories
+    ))
+  indexer.index(rows, context_constructor, content_constructor, context_constructor_kwargs={'gemini_client': Client.gemini()})

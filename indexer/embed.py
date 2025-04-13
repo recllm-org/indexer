@@ -11,4 +11,5 @@ class Embedder:
   
   def embed(self, contents):
     result = self.client.models.embed_content(model=self.model, contents=contents, config={'task_type': self.task, 'output_dimensionality': self.config.embedding_dim})
-    return result.embeddings
+    embeddings = [embedding.values for embedding in result.embeddings]
+    return embeddings
