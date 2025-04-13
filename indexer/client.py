@@ -1,4 +1,4 @@
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from google import genai
 import os
 import supabase
@@ -16,4 +16,4 @@ class Client:
 	
 	@staticmethod
 	def gemini():
-		return genai.Client(Client.envars.get('GEMINI_API_KEY'))
+		return genai.client.Client(api_key=Client.envars.get('GEMINI_API_KEY'))

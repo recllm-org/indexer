@@ -7,7 +7,7 @@ class Indexer:
   def __init__(self, config):
     self.config = config
     self.db = Database(config)
-    self.embedder = Embedder()
+    self.embedder = Embedder(config)
   
   def index(self, rows, context_constructor, content_constructor):
     with self.db.Session() as session:

@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 
 @dataclass
 class Paper:
-  id: str
+  arxiv_id: str
   title: str
   authors: list
   abstract: str
@@ -65,7 +65,7 @@ class ArxivFetcher:
       published = published_elem.text if published_elem is not None else ''
 
       paper = Paper(
-        id=paper_id,
+        arxiv_id=paper_id,
         title=title,
         authors=author_names,
         abstract=abstract,
@@ -120,7 +120,7 @@ class ArxivFetcher:
 
 config = Config(
   user_tables={},
-  item_tables={'Papers': papers}
+  item_tables={'papers': 'Papers'}
 )
 indexer = Indexer(config)
 
@@ -132,4 +132,14 @@ def content_constructor(obj):
 
 fetcher = ArxivFetcher()
 papers = fetcher.fetch_papers(max_results=10)
-indexer.index(papers, context_constructor, content_constructor)
+rows = []
+for paper in papers:
+  rows.append(indexer.db.Papers(
+    arxiv_id=paper.arxiv_id,
+    title=paper.title,
+    authors=paper.authors,
+    abstract=paper.abstract,
+    submitted_date=paper.submitted_date,
+    categories=paper.categories
+  ))
+indexer.index(rows, context_constructor, content_constructor)

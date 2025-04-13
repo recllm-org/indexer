@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, mapped_column, DeclarativeBase
 from sqlalchemy.ext.automap import automap_base
 from pgvector.sqlalchemy import Vector
 from .client import Client
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 
 
@@ -15,8 +15,8 @@ class Database:
     # sqlalchemy
     self.engine = create_engine(Database.get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
-    self.metadata = MetaData(self.engine)
-    self.metadata.reflect()
+    self.metadata = MetaData()
+    self.metadata.reflect(bind=self.engine)
     # tables
     self.get_existing_tables(self.config.user_tables)
     self.get_existing_tables(self.config.item_tables)
@@ -30,32 +30,34 @@ class Database:
     # users
     class RecLLMUsers(Base):
       __tablename__ = 'recllm_users'
+      __table_args__ = {'extend_existing': True}
       id = mapped_column(Integer, primary_key=True, autoincrement=True)
       tablename = mapped_column(String)
       user_id = mapped_column(Integer)
-      embedding = mapped_column(Vector(dimensions=self.config.embedding_dim))
+      embedding = mapped_column(Vector(self.config.embedding_dim))
       context = mapped_column(String)
     # items
     class RecLLMItems(Base):
       __tablename__ = 'recllm_items'
+      __table_args__ = {'extend_existing': True}
       id = mapped_column(Integer, primary_key=True, autoincrement=True)
       tablename = mapped_column(String)
       item_id = mapped_column(Integer)
-      embedding = mapped_column(Vector(dimensions=self.config.embedding_dim))
+      embedding = mapped_column(Vector(self.config.embedding_dim))
       context = mapped_column(String)
     self.metadata.create_all(self.engine)
     self.RecLLMUsers = RecLLMUsers
     self.RecLLMItems = RecLLMItems
   
   def get_existing_tables(self, tables):
-    Base = automap_base(self.metadata)
+    Base = automap_base(metadata=self.metadata)
     Base.prepare()
     for table_name, table_class in tables.items():
       self.__setattr__(table_class, Base.classes[table_name])
   
   @staticmethod
   def get_connection_string():
-    envars = load_dotenv('.env')
+    envars = dotenv_values('.env')
     DB_USERNAME = envars.get('DB_USERNAME')
     DB_PASSWORD = envars.get('DB_PASSWORD')
     DB_HOST = envars.get('DB_HOST')
