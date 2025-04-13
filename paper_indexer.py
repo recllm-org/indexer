@@ -132,7 +132,7 @@ def context_constructor(obj, gemini_client): # this maybe same as content or dif
     config=GenerateContentConfig(
       system_instruction='''Generate a super concise TL;DR (max 5 sentences) of the paper based on the title and abstract.
       It need not make grammatical sense, but should be scientifically accurate.
-      Output should only contain the contents of the TL;DR, no other text.
+      Output should only contain the contents of the TL;DR, no other text. Dont mention TL;DR in the output.
       '''
     )
   )
@@ -158,3 +158,4 @@ for _ in range(NUM_FETCHES):
       categories=paper.categories
     ))
   indexer.index(rows, context_constructor, content_constructor, context_constructor_kwargs={'gemini_client': Client.gemini()})
+  time.sleep(10)
