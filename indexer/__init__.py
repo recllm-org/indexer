@@ -1,5 +1,6 @@
 from .db import Database
 from .embed import Embedder
+from sqlalchemy import text
 
 
 
@@ -13,6 +14,7 @@ class Indexer:
     context_constructor_kwargs = context_constructor_kwargs or {}
     content_constructor_kwargs = content_constructor_kwargs or {}
     with self.db.Session() as session:
+      session.execute(text('SET session_replication_role = replica')) # prevent triggers from firing
       session.add_all(rows)
       session.flush()
 
@@ -38,9 +40,9 @@ class Indexer:
           raise ValueError(f'Invalid table: {tablename}. Table should either be in user_tables or item_tables.')
         # recllm object
         if recllm_type=='user':
-          recllm_obj = self.db.RecLLMUsers(tablename=tablename, user_id=row.id, embedding=embedding, context=context)
+          recllm_obj = self.db.RecLLMUsers(tablename=tablename, row_id=row.id, embedding=embedding, context=context)
         elif recllm_type=='item':
-          recllm_obj = self.db.RecLLMItems(tablename=tablename, item_id=row.id, embedding=embedding, context=context)
+          recllm_obj = self.db.RecLLMItems(tablename=tablename, row_id=row.id, embedding=embedding, context=context)
         recllm_objs.append(recllm_obj)
       session.add_all(recllm_objs)
       session.commit()

@@ -33,7 +33,7 @@ class Database:
       __table_args__ = {'extend_existing': True}
       id = mapped_column(Integer, primary_key=True, autoincrement=True)
       tablename = mapped_column(String)
-      user_id = mapped_column(Integer)
+      row_id = mapped_column(Integer)
       embedding = mapped_column(Vector(self.config.embedding_dim))
       context = mapped_column(String)
       stale = mapped_column(Boolean, default=False)
@@ -43,7 +43,7 @@ class Database:
       __table_args__ = {'extend_existing': True}
       id = mapped_column(Integer, primary_key=True, autoincrement=True)
       tablename = mapped_column(String)
-      item_id = mapped_column(Integer)
+      row_id = mapped_column(Integer)
       embedding = mapped_column(Vector(self.config.embedding_dim))
       context = mapped_column(String)
       stale = mapped_column(Boolean, default=False)
@@ -80,8 +80,8 @@ class Database:
     else:
       raise ValueError(f'Table {tablename} not found in config!')
     
-    trigger_name = f'trigger_update_delete_{tablename}'
-    function_name = f'fn_update_delete_{tablename}'
+    trigger_name = f'recllm_trigger_{tablename}'
+    function_name = f'recllm_fn_{tablename}'
     command = f"""
     -- Create or replace the trigger function
     CREATE OR REPLACE FUNCTION {function_name}()
@@ -91,13 +91,18 @@ class Database:
             -- Update the stale column in {recllm_tablename} table
             UPDATE {recllm_tablename}
             SET stale = TRUE
-            WHERE tablename = '{tablename}' AND item_id = OLD.id;
+            WHERE tablename = '{tablename}' AND row_id = OLD.id;
             RETURN NEW;
         ELSIF TG_OP = 'DELETE' THEN
             -- Delete the corresponding row in {recllm_tablename} table
             DELETE FROM {recllm_tablename}
-            WHERE tablename = '{tablename}' AND item_id = OLD.id;
+            WHERE tablename = '{tablename}' AND row_id = OLD.id;
             RETURN OLD;
+        ELSIF TG_OP = 'INSERT' THEN
+            -- Insert a new row into {recllm_tablename} table
+            INSERT INTO {recllm_tablename} (tablename, row_id, stale)
+            VALUES ('{tablename}', NEW.id, TRUE);
+            RETURN NEW;
         END IF;
         RETURN NULL;
     END;
@@ -106,7 +111,7 @@ class Database:
     DROP TRIGGER IF EXISTS {trigger_name} ON {tablename};
     -- Create the trigger
     CREATE TRIGGER {trigger_name}
-    AFTER UPDATE OF {', '.join(tracked_columns)} OR DELETE ON {tablename}
+    AFTER INSERT OR UPDATE OF {', '.join(tracked_columns)} OR DELETE ON {tablename}
     FOR EACH ROW
     EXECUTE FUNCTION {function_name}();
     """
@@ -116,6 +121,7 @@ class Database:
     with self.Session() as session:
       session.execute(text('CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;'))
       session.commit()
+  
   @staticmethod
   def get_connection_string():
     envars = dotenv_values('.env')
