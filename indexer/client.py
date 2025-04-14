@@ -11,7 +11,6 @@ class Client:
 	@staticmethod
 	def supabase():
 		client = supabase.create_client(Client.envars.get('SUPABASE_URL'), Client.envars.get('SUPABASE_KEY'))
-		client.rpc('sql', 'CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;')
 		return client
 	
 	@staticmethod

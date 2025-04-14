@@ -19,18 +19,17 @@ class Indexer:
       contexts = []
       contents = []
       for row in rows:
-        table = row.__class__.__table__
         context = context_constructor(row, **context_constructor_kwargs)
         content = content_constructor(row, **content_constructor_kwargs)
         contexts.append(context)
         contents.append(content)
       embeddings = self.embedder.embed(contents)
 
+      recllm_objs = []
       for row, embedding, context in zip(rows, embeddings, contexts):
         session.refresh(row)
         recllm_type = None
-        table = row.__class__.__table__
-        tablename = table.name
+        tablename = row.__class__.__table__.name
         if tablename in self.config.user_tables:
           recllm_type = 'user'
         elif tablename in self.config.item_tables:
@@ -42,5 +41,6 @@ class Indexer:
           recllm_obj = self.db.RecLLMUsers(tablename=tablename, user_id=row.id, embedding=embedding, context=context)
         elif recllm_type=='item':
           recllm_obj = self.db.RecLLMItems(tablename=tablename, item_id=row.id, embedding=embedding, context=context)
-        session.add(recllm_obj)
+        recllm_objs.append(recllm_obj)
+      session.add_all(recllm_objs)
       session.commit()

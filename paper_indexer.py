@@ -122,7 +122,7 @@ class ArxivFetcher:
 
 config = Config(
   user_tables={},
-  item_tables={'papers': 'Papers'}
+  item_tables={'papers': {'class': 'Papers', 'tracked_columns': ['title', 'abstract']}}
 )
 indexer = Indexer(config)
 
@@ -143,8 +143,8 @@ def content_constructor(obj):
   return f'{obj.title}\n {obj.abstract}'
 
 fetcher = ArxivFetcher()
-NUM_FETCHES = 10
-MAX_PER_FETCH = 20
+NUM_FETCHES = 1
+MAX_PER_FETCH = 1
 for _ in range(NUM_FETCHES):
   papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH)
   rows = []
