@@ -10,9 +10,7 @@ class Indexer:
     self.db = Database(config)
     self.embedder = Embedder(config)
   
-  def index(self, rows, context_constructor, content_constructor, context_constructor_kwargs=None, content_constructor_kwargs=None):
-    context_constructor_kwargs = context_constructor_kwargs or {}
-    content_constructor_kwargs = content_constructor_kwargs or {}
+  def index(self, rows, context_constructor, content_constructor):
     with self.db.Session() as session:
       session.execute(text('SET session_replication_role = replica')) # prevent triggers from firing
       session.add_all(rows)
@@ -21,8 +19,8 @@ class Indexer:
       contexts = []
       contents = []
       for row in rows:
-        context = context_constructor(row, **context_constructor_kwargs)
-        content = content_constructor(row, **content_constructor_kwargs)
+        context = context_constructor.execute(row, self.config)
+        content = content_constructor.execute(row, self.config)
         contexts.append(context)
         contents.append(content)
       embeddings = self.embedder.embed(contents)

@@ -1,6 +1,7 @@
 from indexer import Indexer
 from indexer.config import Config
 from indexer.client import Client
+from indexer.constructor import Constructor
 from dataclasses import dataclass
 from google.genai.types import GenerateContentConfig
 import requests
@@ -126,21 +127,34 @@ config = Config(
 )
 indexer = Indexer(config)
 
-def context_constructor(obj, gemini_client): # this maybe same as content or different according to requirements
-  chat = gemini_client.chats.create(
-    model='gemini-2.0-flash-lite',
-    config=GenerateContentConfig(
-      system_instruction='''Generate a super concise TL;DR (max 5 sentences) of the paper based on the title and abstract.
-      It need not make grammatical sense, but should be scientifically accurate.
-      Output should only contain the contents of the TL;DR, no other text. Dont mention TL;DR in the output.
-      '''
-    )
-  )
-  response = chat.send_message(f'{obj.title}\n {obj.abstract}')
-  return response.text
 
-def content_constructor(obj):
-  return f'{obj.title}\n {obj.abstract}'
+class PaperContextConstructor(Constructor):
+  def __init__(self, gemini_client):
+    super().__init__(constructor_fn_kwargs={'gemini_client': gemini_client})
+
+  def constructor_fn(self, sanitized_row, gemini_client):
+    chat = gemini_client.chats.create(
+      model='gemini-2.0-flash-lite',
+      config=GenerateContentConfig(
+        system_instruction='''Generate a super concise TL;DR (max 5 sentences) of the paper based on the title and abstract.
+        It need not make grammatical sense, but should be scientifically accurate.
+        Output should only contain the contents of the TL;DR, no other text. Dont mention TL;DR in the output.
+        '''
+      )
+    )
+    response = chat.send_message(f'{sanitized_row.title}\n {sanitized_row.abstract}')
+    return response.text
+paper_context_constructor = PaperContextConstructor(Client.gemini())
+
+
+class PaperContentConstructor(Constructor):
+  def __init__(self):
+    super().__init__()
+
+  def constructor_fn(self, sanitized_row, **kwargs):
+    return f'{sanitized_row.title}\n {sanitized_row.abstract}'
+paper_content_constructor = PaperContentConstructor()
+
 
 fetcher = ArxivFetcher()
 NUM_FETCHES = 1
@@ -157,5 +171,5 @@ for _ in range(NUM_FETCHES):
       submitted_date=paper.submitted_date,
       categories=paper.categories
     ))
-  indexer.index(rows, context_constructor, content_constructor, context_constructor_kwargs={'gemini_client': Client.gemini()})
+  indexer.index(rows, paper_context_constructor, paper_content_constructor)
   time.sleep(10)
