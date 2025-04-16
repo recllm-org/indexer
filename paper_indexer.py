@@ -1,6 +1,7 @@
-from indexer import Config, Client, ItemTable, Embedder, Function, Indexer
+from indexer import Client, ItemTable, Embedder, Function, Indexer
 from dataclasses import dataclass
 from google.genai.types import GenerateContentConfig
+from sqlalchemy import text
 import requests
 import time
 import xml.etree.ElementTree as ET
@@ -119,7 +120,7 @@ class ArxivFetcher:
       raise err
 
 
-class PaperContentContextFunction(Function):
+class PaperContentContext(Function):
   def fn(self, row, gemini_client=Client.gemini()):
     # content
     content = f'{row.title}\n{row.abstract}'
@@ -139,7 +140,7 @@ class PaperContentContextFunction(Function):
     row.cache.context = context
 
 
-class PaperEmbedderFunction(Function):
+class PaperEmbedder(Function):
   def __init__(self):
     super().__init__(row_wise=False)
   
@@ -156,11 +157,33 @@ indexer = Indexer([
     classname='Papers',
     tracked_columns=['title', 'abstract'],
     functions=[
-      PaperContentContextFunction(),
-      PaperEmbedderFunction()
+      PaperContentContext(),
+      PaperEmbedder()
     ]
   )
 ])
+
+fetcher = ArxivFetcher()
+NUM_FETCHES = 1
+MAX_PER_FETCH = 1
+for _ in range(NUM_FETCHES):
+  papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH)
+  with indexer.db.Session() as session:
+    session.execute(text('SET session_replication_role = replica'))
+    rows = []
+    for paper in papers:
+      rows.append(indexer.db.Papers(
+        arxiv_id=paper.arxiv_id,
+        title=paper.title,
+        authors=paper.authors,
+        abstract=paper.abstract,
+        submitted_date=paper.submitted_date,
+        categories=paper.categories
+      ))
+    session.add_all(rows)
+    session.commit()
+    indexer.index(rows)
+    time.sleep(10)
 
 
 

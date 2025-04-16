@@ -9,26 +9,25 @@ from types import SimpleNamespace
 class Indexer:
   def __init__(self, tables):
     Indexer.validate_tables(tables)
+    self.mapping = Indexer.create_mapping(tables)
     self.db = Database(tables)
   
   def index(self, rows):
-    mapping = Indexer.create_mapping(self.tables)
-    grouped_rows = Indexer.group_rows(rows, mapping)
+    grouped_rows = self.group_rows(rows)
     with self.db.Session() as session:
       for tablename, rows in grouped_rows.items():
-        table = mapping[tablename]
+        table = self.mapping[tablename]
         table.execute_functions(rows)
         table.push(rows, session)
       session.commit()
 
-  @staticmethod
-  def group_rows(rows, mapping):
+  def group_rows(self, rows):
     grouped_rows = {}
     for row in rows:
       tablename = row.__class__.__table__.name
       # row modifications
       row.cache = SimpleNamespace()
-      row = SanitizedRow(row, mapping[tablename].tracked_columns)
+      row = SanitizedRow(row, tablename, self.mapping[tablename].tracked_columns)
       # grouping
       if tablename not in grouped_rows:
         grouped_rows[tablename] = []

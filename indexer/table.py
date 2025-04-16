@@ -2,9 +2,11 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import Integer, String, Boolean
 from pgvector.sqlalchemy import Vector
+from .utils import get_envars
 
 
-
+envars = get_envars()
+embedding_dim = int(envars.get('GEMINI_EMBEDDING_DIM'))
 class Base(DeclarativeBase): pass
 
 
@@ -14,7 +16,7 @@ class RecLLMUsers(Base):
   id = mapped_column(Integer, primary_key=True, autoincrement=True)
   tablename = mapped_column(String)
   row_id = mapped_column(Integer)
-  embedding = mapped_column(Vector(self.config.embedding_dim))
+  embedding = mapped_column(Vector(embedding_dim))
   context = mapped_column(String)
   stale = mapped_column(Boolean, default=False)
 
@@ -25,7 +27,7 @@ class RecLLMItems(Base):
   id = mapped_column(Integer, primary_key=True, autoincrement=True)
   tablename = mapped_column(String)
   row_id = mapped_column(Integer)
-  embedding = mapped_column(Vector(self.config.embedding_dim))
+  embedding = mapped_column(Vector(embedding_dim))
   context = mapped_column(String)
   stale = mapped_column(Boolean, default=False)
 
@@ -41,7 +43,7 @@ class Table:
     for function in self.functions:
       function.execute(rows)
   
-  def push(self, row, session):
+  def push(self, rows, session):
     raise NotImplementedError('push must be implemented!')
 
 
@@ -50,15 +52,18 @@ class UserTable(Table):
     super().__init__(tablename, classname, tracked_columns, functions)
     self.recllm_tablename = RecLLMUsers.__tablename__
   
-  def push(self, row, session):
-    row.unlock()
-    recllm_row = RecLLMUsers(
-      tablename=self.tablename,
-      row_id=row.id,
-      embedding=row.cache.embedding,
-      context=row.cache.context
-    )
-    session.add(recllm_row)
+  def push(self, rows, session):
+    recllm_rows = []
+    for row in rows:
+      row.unlock()
+      recllm_row = RecLLMUsers(
+        tablename=self.tablename,
+        row_id=row.id,
+        embedding=row.cache.embedding,
+        context=row.cache.context
+      )
+      recllm_rows.append(recllm_row)
+    session.add_all(recllm_rows)
 
 
 class ItemTable(Table):
@@ -66,12 +71,15 @@ class ItemTable(Table):
     super().__init__(tablename, classname, tracked_columns, functions)
     self.recllm_tablename = RecLLMItems.__tablename__
   
-  def push(self, row, session):
-    row.unlock()
-    recllm_row = RecLLMItems(
-      tablename=self.tablename,
-      row_id=row.id,
-      embedding=row.cache.embedding,
-      context=row.cache.context
-    )
-    session.add(recllm_row)
+  def push(self, rows, session):
+    recllm_rows = []
+    for row in rows:
+      row.unlock()
+      recllm_row = RecLLMItems(
+        tablename=self.tablename,
+        row_id=row.id,
+        embedding=row.cache.embedding,
+        context=row.cache.context
+      )
+      recllm_rows.append(recllm_row)
+    session.add_all(recllm_rows)
