@@ -11,3 +11,15 @@ class Function:
         self.fn(row) # other kwargs will be passed directly
     else:
       self.fn(rows) # other kwargs will be passed directly
+
+
+class ContentEmbedder(Function):
+  def __init__(self, embedder):
+    super().__init__(row_wise=False)
+    self.embedder = embedder
+  
+  def fn(self, rows):
+    all_contents = [row.cache.content for row in rows]
+    embeddings = self.embedder.embed(all_contents)
+    for row, embedding in zip(rows, embeddings):
+      row.cache.embedding = embedding
