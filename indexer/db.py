@@ -1,10 +1,8 @@
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, Boolean, text
-from sqlalchemy.orm import sessionmaker, mapped_column, DeclarativeBase
+from sqlalchemy import create_engine, MetaData, text
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
-from pgvector.sqlalchemy import Vector
+from .table import Base, RecLLMUsers, RecLLMItems
 from .client import Client
-from dotenv import dotenv_values
-
 
 
 class Database:
@@ -13,72 +11,39 @@ class Database:
     # supabase
     self.client = Client.supabase()
     # sqlalchemy
-    self.engine = create_engine(Database.get_connection_string())
+    self.engine = create_engine(self.get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
-    self.metadata = MetaData()
-    self.metadata.reflect(bind=self.engine)
     self.enable_vector_extension()
     # tables
-    self.get_existing_tables(self.config.user_tables)
-    self.get_existing_tables(self.config.item_tables)
-    self.get_or_create_recllm_tables()
+    self.get_existing_tables(self.config.tables)
+    # recllm tables
+    Base.metadata.create_all(self.engine)
+    self.RecLLMUsers = RecLLMUsers
+    self.RecLLMItems = RecLLMItems
     # triggers
     self.create_triggers()
   
-  def get_or_create_recllm_tables(self):
-    class Base(DeclarativeBase): metadata = self.metadata
-    # users
-    class RecLLMUsers(Base):
-      __tablename__ = 'recllm_users'
-      __table_args__ = {'extend_existing': True}
-      id = mapped_column(Integer, primary_key=True, autoincrement=True)
-      tablename = mapped_column(String)
-      row_id = mapped_column(Integer)
-      embedding = mapped_column(Vector(self.config.embedding_dim))
-      context = mapped_column(String)
-      stale = mapped_column(Boolean, default=False)
-    # items
-    class RecLLMItems(Base):
-      __tablename__ = 'recllm_items'
-      __table_args__ = {'extend_existing': True}
-      id = mapped_column(Integer, primary_key=True, autoincrement=True)
-      tablename = mapped_column(String)
-      row_id = mapped_column(Integer)
-      embedding = mapped_column(Vector(self.config.embedding_dim))
-      context = mapped_column(String)
-      stale = mapped_column(Boolean, default=False)
-    self.metadata.create_all(self.engine)
-    self.RecLLMUsers = RecLLMUsers
-    self.RecLLMItems = RecLLMItems
-  
   def get_existing_tables(self, tables):
-    Base = automap_base(metadata=self.metadata)
-    Base.prepare()
-    for tablename, table_details in tables.items():
-      self.__setattr__(table_details['class'], Base.classes[tablename])
+    metadata = MetaData()
+    metadata.reflect(bind=self.engine)
+    AutomapBase = automap_base(metadata=metadata)
+    AutomapBase.prepare()
+    for table in tables:
+      self.__setattr__(table.classname, AutomapBase.classes[table.tablename])
   
   def create_triggers(self):
     commands = []
-    for tablename in self.config.user_tables:
-      commands.append(self.get_trigger_command(tablename))
-    for tablename in self.config.item_tables:
-      commands.append(self.get_trigger_command(tablename))
+    for table in self.config.tables:
+      commands.append(self.get_trigger_command(table))
     unified_command = '\n'.join(commands)
     with self.Session() as session:
       session.execute(text(unified_command))
       session.commit()
   
-  def get_trigger_command(self, tablename):
-    recllm_tablename = None
-    tracked_columns = None
-    if tablename in self.config.user_tables:
-      recllm_tablename = self.RecLLMUsers.__tablename__
-      tracked_columns = self.config.user_tables[tablename]['tracked_columns']
-    elif tablename in self.config.item_tables:
-      recllm_tablename = self.RecLLMItems.__tablename__
-      tracked_columns = self.config.item_tables[tablename]['tracked_columns']
-    else:
-      raise ValueError(f'Table {tablename} not found in config!')
+  def get_trigger_command(self, table):
+    tablename = table.tablename
+    tracked_columns = table.tracked_columns
+    recllm_tablename = table.recllm_tablename
     
     trigger_name = f'recllm_trigger_{tablename}'
     function_name = f'recllm_fn_{tablename}'
@@ -122,9 +87,8 @@ class Database:
       session.execute(text('CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;'))
       session.commit()
   
-  @staticmethod
-  def get_connection_string():
-    envars = dotenv_values('.env')
+  def get_connection_string(self):
+    envars = self.config.envars
     DB_USERNAME = envars.get('DB_USERNAME')
     DB_PASSWORD = envars.get('DB_PASSWORD')
     DB_HOST = envars.get('DB_HOST')
