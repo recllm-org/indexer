@@ -3,17 +3,21 @@ from .utils import get_envars
 
 
 
-class Embedder:
-  def __init__(self):
-    envars = get_envars()
-    self.model = envars.get('GEMINI_MODEL')
-    self.task = envars.get('GEMINI_TASK')
-    self.embedding_dim = int(envars.get('GEMINI_EMBEDDING_DIM'))
+envars = get_envars()
+embedding_dim = int(envars.get('EMBEDDING_DIM'))
+
+
+class GeminiEmbedder:
+  def __init__(self, model='gemini-embedding-exp-03-07', task='SEMANTIC_SIMILARITY'):
+    self.model = model
+    self.task = task
+    self.embedding_dim = embedding_dim
     self.client = Client.gemini()
   
   def embed(self, contents):
     result = self.client.models.embed_content(
-      model=self.model, contents=contents,
+      model=self.model, 
+      contents=contents,
       config={
         'task_type': self.task, 
         'output_dimensionality': self.embedding_dim

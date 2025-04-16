@@ -5,8 +5,11 @@ from pgvector.sqlalchemy import Vector
 from .utils import get_envars
 
 
+
 envars = get_envars()
-embedding_dim = int(envars.get('GEMINI_EMBEDDING_DIM'))
+embedding_dim = int(envars.get('EMBEDDING_DIM'))
+
+
 class Base(DeclarativeBase): pass
 
 

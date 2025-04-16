@@ -1,4 +1,4 @@
-from indexer import Client, ItemTable, Embedder, Function, Indexer
+from indexer import Client, ItemTable, GeminiEmbedder, Function, Indexer
 from dataclasses import dataclass
 from google.genai.types import GenerateContentConfig
 from sqlalchemy import text
@@ -144,7 +144,7 @@ class PaperEmbedder(Function):
   def __init__(self):
     super().__init__(row_wise=False)
   
-  def fn(self, rows, embedder=Embedder()):
+  def fn(self, rows, embedder=GeminiEmbedder()):
     all_contents = [row.cache.content for row in rows]
     embeddings = embedder.embed(all_contents)
     for row, embedding in zip(rows, embeddings):
@@ -184,7 +184,3 @@ for _ in range(NUM_FETCHES):
     session.commit()
     indexer.index(rows)
     time.sleep(10)
-
-
-
-

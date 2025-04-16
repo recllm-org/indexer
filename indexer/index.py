@@ -1,6 +1,5 @@
 from .db import Database
 from .table import UserTable, ItemTable
-from .embed import Embedder
 from .utils import SanitizedRow
 from types import SimpleNamespace
 
