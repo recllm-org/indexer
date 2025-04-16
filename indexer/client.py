@@ -1,4 +1,4 @@
-from dotenv import dotenv_values
+from .utils import get_envars
 from google import genai
 import os
 import supabase
@@ -6,7 +6,7 @@ import supabase
 
 
 class Client:
-	envars = dotenv_values('.env')
+	envars = get_envars()
 
 	@staticmethod
 	def supabase():

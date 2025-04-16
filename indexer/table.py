@@ -4,6 +4,7 @@ from sqlalchemy import Integer, String, Boolean
 from pgvector.sqlalchemy import Vector
 
 
+
 class Base(DeclarativeBase): pass
 
 
@@ -39,15 +40,38 @@ class Table:
   def execute_functions(self, rows):
     for function in self.functions:
       function.execute(rows)
+  
+  def push(self, row, session):
+    raise NotImplementedError('push must be implemented!')
 
 
 class UserTable(Table):
   def __init__(self, tablename, classname, tracked_columns=None, functions=None):
     super().__init__(tablename, classname, tracked_columns, functions)
     self.recllm_tablename = RecLLMUsers.__tablename__
+  
+  def push(self, row, session):
+    row.unlock()
+    recllm_row = RecLLMUsers(
+      tablename=self.tablename,
+      row_id=row.id,
+      embedding=row.cache.embedding,
+      context=row.cache.context
+    )
+    session.add(recllm_row)
 
 
 class ItemTable(Table):
   def __init__(self, tablename, classname, tracked_columns=None, functions=None):
     super().__init__(tablename, classname, tracked_columns, functions)
     self.recllm_tablename = RecLLMItems.__tablename__
+  
+  def push(self, row, session):
+    row.unlock()
+    recllm_row = RecLLMItems(
+      tablename=self.tablename,
+      row_id=row.id,
+      embedding=row.cache.embedding,
+      context=row.cache.context
+    )
+    session.add(recllm_row)

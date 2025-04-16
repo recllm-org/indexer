@@ -1,39 +1,36 @@
 from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
-from .table import Base, RecLLMUsers, RecLLMItems
+from .table import Base
 from .client import Client
+from .utils import get_envars
+
 
 
 class Database:
-  def __init__(self, config):
-    self.config = config
-    # supabase
-    self.client = Client.supabase()
+  def __init__(self, tables):
+    self.tables = tables
     # sqlalchemy
     self.engine = create_engine(self.get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
     self.enable_vector_extension()
     # tables
-    self.get_existing_tables(self.config.tables)
-    # recllm tables
-    Base.metadata.create_all(self.engine)
-    self.RecLLMUsers = RecLLMUsers
-    self.RecLLMItems = RecLLMItems
+    self.get_existing_tables()
+    Base.metadata.create_all(self.engine) # this needs to be here to only create tables once
     # triggers
     self.create_triggers()
   
-  def get_existing_tables(self, tables):
+  def get_existing_tables(self):
     metadata = MetaData()
     metadata.reflect(bind=self.engine)
     AutomapBase = automap_base(metadata=metadata)
     AutomapBase.prepare()
-    for table in tables:
+    for table in self.tables:
       self.__setattr__(table.classname, AutomapBase.classes[table.tablename])
   
   def create_triggers(self):
     commands = []
-    for table in self.config.tables:
+    for table in self.tables:
       commands.append(self.get_trigger_command(table))
     unified_command = '\n'.join(commands)
     with self.Session() as session:
@@ -88,7 +85,7 @@ class Database:
       session.commit()
   
   def get_connection_string(self):
-    envars = self.config.envars
+    envars = get_envars()
     DB_USERNAME = envars.get('DB_USERNAME')
     DB_PASSWORD = envars.get('DB_PASSWORD')
     DB_HOST = envars.get('DB_HOST')

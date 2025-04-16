@@ -1,30 +1,13 @@
-class SanitizedRow:
-  def __init__(self, row, config):
-    self.config = config
-    self.tablename = row.__class__.__table__.name
-    self.tracked_columns = config.mapping[self.tablename].tracked_columns
-    SanitizedRow.set_required_attributes(self, row, self.tracked_columns)
-  
-  @staticmethod
-  def set_required_attributes(self, row, tracked_columns):
-    for column in tracked_columns:
-      setattr(self, column, getattr(row, column))
-  
-  def __getattr__(self, attr):
-    ALLOWED_ATTRS = ['config', 'tablename', 'tracked_columns']
-    if attr not in self.tracked_columns and attr not in ALLOWED_ATTRS:
-      raise AttributeError(f'Column {attr} not found in tracked columns of table {self.tablename}!')
-    return getattr(self, attr)
-
-
 class Function:
-  def __init__(self, kwargs=None):
-    self.kwargs = kwargs or {}
+  def __init__(self, row_wise=True):
+    self.row_wise = row_wise
   
-  def fn(self, row, **kwargs):
+  def fn(self, arg): # pass all kwargs required directly while implementing
     raise NotImplementedError('fn must be implemented!')
   
-  def execute(self, rows, config):
-    for row in rows:
-      sanitized_row = SanitizedRow(row, config)
-      return self.fn(sanitized_row, **self.kwargs)
+  def execute(self, rows):
+    if self.row_wise:
+      for row in rows:
+        self.fn(row) # other kwargs will be passed directly
+    else:
+      self.fn(rows) # other kwargs will be passed directly

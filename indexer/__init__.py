@@ -1,13 +1,5 @@
-from .db import Database
+from .indexer import Indexer
 from .embed import Embedder
-
-
-
-class Indexer:
-  def __init__(self, config):
-    self.config = config
-    self.db = Database(config)
-    self.embedder = Embedder(config)
-  
-  def index(self, rows):
-    pass
+from .table import UserTable, ItemTable
+from .function import Function
+from .client import Client

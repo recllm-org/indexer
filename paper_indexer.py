@@ -1,7 +1,4 @@
-from indexer import Indexer
-from indexer.config import Config
-from indexer.client import Client
-from indexer.constructor import Constructor
+from indexer import Config, Client, ItemTable, Embedder, Function, Indexer
 from dataclasses import dataclass
 from google.genai.types import GenerateContentConfig
 import requests
@@ -121,18 +118,13 @@ class ArxivFetcher:
         )
       raise err
 
-config = Config(
-  user_tables={},
-  item_tables={'papers': {'class': 'Papers', 'tracked_columns': ['title', 'abstract']}}
-)
-indexer = Indexer(config)
 
-
-class PaperContextConstructor(Constructor):
-  def __init__(self, gemini_client):
-    super().__init__(constructor_fn_kwargs={'gemini_client': gemini_client})
-
-  def constructor_fn(self, sanitized_row, gemini_client):
+class PaperContentContextFunction(Function):
+  def fn(self, row, gemini_client=Client.gemini()):
+    # content
+    content = f'{row.title}\n{row.abstract}'
+    row.cache.content = content
+    # context
     chat = gemini_client.chats.create(
       model='gemini-2.0-flash-lite',
       config=GenerateContentConfig(
@@ -142,34 +134,34 @@ class PaperContextConstructor(Constructor):
         '''
       )
     )
-    response = chat.send_message(f'{sanitized_row.title}\n {sanitized_row.abstract}')
-    return response.text
-paper_context_constructor = PaperContextConstructor(Client.gemini())
+    response = chat.send_message(f'{row.title}\n {row.abstract}')
+    context = response.text
+    row.cache.context = context
 
 
-class PaperContentConstructor(Constructor):
+class PaperEmbedderFunction(Function):
   def __init__(self):
-    super().__init__()
+    super().__init__(row_wise=False)
+  
+  def fn(self, rows, embedder=Embedder()):
+    all_contents = [row.cache.content for row in rows]
+    embeddings = embedder.embed(all_contents)
+    for row, embedding in zip(rows, embeddings):
+      row.cache.embedding = embedding
 
-  def constructor_fn(self, sanitized_row, **kwargs):
-    return f'{sanitized_row.title}\n {sanitized_row.abstract}'
-paper_content_constructor = PaperContentConstructor()
+
+indexer = Indexer([
+  ItemTable(
+    tablename='papers',
+    classname='Papers',
+    tracked_columns=['title', 'abstract'],
+    functions=[
+      PaperContentContextFunction(),
+      PaperEmbedderFunction()
+    ]
+  )
+])
 
 
-fetcher = ArxivFetcher()
-NUM_FETCHES = 1
-MAX_PER_FETCH = 1
-for _ in range(NUM_FETCHES):
-  papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH)
-  rows = []
-  for paper in papers:
-    rows.append(indexer.db.Papers(
-      arxiv_id=paper.arxiv_id,
-      title=paper.title,
-      authors=paper.authors,
-      abstract=paper.abstract,
-      submitted_date=paper.submitted_date,
-      categories=paper.categories
-    ))
-  indexer.index(rows, paper_context_constructor, paper_content_constructor)
-  time.sleep(10)
+
+
