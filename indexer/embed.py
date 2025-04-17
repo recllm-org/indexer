@@ -8,7 +8,12 @@ envars = get_envars()
 embedding_dim = int(os.environ.get('EMBEDDING_DIM') or envars.get('EMBEDDING_DIM'))
 
 
-class GeminiEmbedder:
+class Embedder:
+  def embed(self, contents):
+    raise NotImplementedError('embed must be implemented!')
+
+
+class GeminiEmbedder(Embedder):
   def __init__(self, model='gemini-embedding-exp-03-07', task='SEMANTIC_SIMILARITY'):
     self.model = model
     self.task = task

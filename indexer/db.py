@@ -40,7 +40,7 @@ class Database:
   def get_trigger_command(self, table):
     tablename = table.tablename
     tracked_columns = table.tracked_columns
-    recllm_tablename = table.recllm_tablename
+    recllm_tablename = table.RecLLMTable.__tablename__
     
     trigger_name = f'recllm_trigger_{tablename}'
     function_name = f'recllm_fn_{tablename}'

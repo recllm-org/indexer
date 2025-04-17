@@ -173,4 +173,3 @@ for _ in range(NUM_FETCHES):
     session.add_all(rows)
     session.commit()
     indexer.index(rows)
-    time.sleep(10)
