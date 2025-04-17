@@ -1,5 +1,4 @@
 from .db import Database
-from .table import UserTable, ItemTable
 from .utils import SanitizedRow
 from types import SimpleNamespace
 
@@ -7,7 +6,6 @@ from types import SimpleNamespace
 
 class Indexer:
   def __init__(self, tables):
-    Indexer.validate_tables(tables)
     self.mapping = Indexer.create_mapping(tables)
     self.db = Database(tables)
   
@@ -39,9 +37,3 @@ class Indexer:
     for table in tables:
       mapping[table.tablename] = table
     return mapping
-  
-  @staticmethod
-  def validate_tables(tables):
-    for table in tables:
-      if not isinstance(table, (UserTable, ItemTable)):
-        raise ValueError(f'Table {table.tablename} should either be a UserTable or ItemTable!')

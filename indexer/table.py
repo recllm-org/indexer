@@ -2,13 +2,8 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import Integer, String, Boolean
 from pgvector.sqlalchemy import Vector
-from .utils import get_envars
-import os
+from .utils import EnvVars
 
-
-
-envars = get_envars()
-embedding_dim = int(os.environ.get('EMBEDDING_DIM') or envars.get('EMBEDDING_DIM'))
 
 
 class Base(DeclarativeBase): pass
@@ -20,7 +15,7 @@ class RecLLMTable(Base):
   id = mapped_column(Integer, primary_key=True, autoincrement=True)
   tablename = mapped_column(String)
   row_id = mapped_column(Integer)
-  embedding = mapped_column(Vector(embedding_dim))
+  embedding = mapped_column(Vector(int(EnvVars.get('EMBEDDING_DIM'))))
   context = mapped_column(String)
   stale = mapped_column(Boolean, default=False)
 

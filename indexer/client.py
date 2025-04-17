@@ -1,4 +1,4 @@
-from .utils import get_envars
+from .utils import EnvVars
 from google import genai
 import os
 import supabase
@@ -6,13 +6,11 @@ import supabase
 
 
 class Client:
-	envars = get_envars()
-
 	@staticmethod
 	def supabase():
-		client = supabase.create_client(Client.envars.get('SUPABASE_URL'), Client.envars.get('SUPABASE_KEY'))
+		client = supabase.create_client(EnvVars.get('SUPABASE_URL'), EnvVars.get('SUPABASE_KEY'))
 		return client
 	
 	@staticmethod
 	def gemini():
-		return genai.client.Client(api_key=Client.envars.get('GEMINI_API_KEY'))
+		return genai.client.Client(api_key=EnvVars.get('GEMINI_API_KEY'))

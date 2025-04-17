@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 from .table import Base
 from .client import Client
-from .utils import get_envars
+from .utils import EnvVars
 
 
 
@@ -85,10 +85,9 @@ class Database:
       session.commit()
   
   def get_connection_string(self):
-    envars = get_envars()
-    DB_USERNAME = envars.get('DB_USERNAME')
-    DB_PASSWORD = envars.get('DB_PASSWORD')
-    DB_HOST = envars.get('DB_HOST')
-    DB_PORT = envars.get('DB_PORT')
-    DB_NAME = envars.get('DB_NAME')
+    DB_USERNAME = EnvVars.get('DB_USERNAME')
+    DB_PASSWORD = EnvVars.get('DB_PASSWORD')
+    DB_HOST = EnvVars.get('DB_HOST')
+    DB_PORT = EnvVars.get('DB_PORT')
+    DB_NAME = EnvVars.get('DB_NAME')
     return f'postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'

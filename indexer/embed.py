@@ -1,11 +1,6 @@
 from .client import Client
-from .utils import get_envars
-import os
+from .utils import EnvVars
 
-
-
-envars = get_envars()
-embedding_dim = int(os.environ.get('EMBEDDING_DIM') or envars.get('EMBEDDING_DIM'))
 
 
 class Embedder:
@@ -17,7 +12,7 @@ class GeminiEmbedder(Embedder):
   def __init__(self, model='gemini-embedding-exp-03-07', task='SEMANTIC_SIMILARITY'):
     self.model = model
     self.task = task
-    self.embedding_dim = embedding_dim
+    self.embedding_dim = int(EnvVars.get('EMBEDDING_DIM'))
     self.client = Client.gemini()
   
   def embed(self, contents):
