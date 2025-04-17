@@ -1,10 +1,11 @@
 from .client import Client
 from .utils import get_envars
+import os
 
 
 
 envars = get_envars()
-embedding_dim = int(envars.get('EMBEDDING_DIM'))
+embedding_dim = int(os.environ.get('EMBEDDING_DIM') or envars.get('EMBEDDING_DIM'))
 
 
 class GeminiEmbedder:
