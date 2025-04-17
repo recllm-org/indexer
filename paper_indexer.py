@@ -1,4 +1,5 @@
-from indexer import Client, ItemTable, GeminiEmbedder, Function, Indexer
+from indexer import Client, ItemTable, Function, Indexer
+from indexer.embed import GeminiEmbedder, CohereEmbedder
 from indexer.function import ContentEmbedder
 from dataclasses import dataclass
 from google.genai.types import GenerateContentConfig
@@ -148,7 +149,8 @@ indexer = Indexer([
     tracked_columns=['title', 'abstract'],
     functions=[
       PaperContentContext(),
-      ContentEmbedder(GeminiEmbedder())
+      ContentEmbedder(GeminiEmbedder()),
+      # ContentEmbedder(CohereEmbedder())
     ]
   )
 ])
