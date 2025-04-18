@@ -180,18 +180,18 @@ for _ in range(NUM_FETCHES):
     indexer.index(rows)
 
 
-embedder = CohereEmbedder(task='search_document')
-embeddings = embedder.embed(
-  contents=construct_cohere_contents([
-    [
-      {'text': 'Hello, world!'},
-      {'image': '/Users/pranavsastry/Downloads/apod_tok.png'},
-      {'text': 'Hello again, world!'}
-    ],
-    [
-      {'text': 'Hello, world!'}
-    ]
-  ])
-)
-print(embeddings)
-print(len(embeddings))
+# embedder = CohereEmbedder(task='search_document')
+# embeddings = embedder.embed(
+#   contents=construct_cohere_contents([
+#     [
+#       {'text': 'Hello, world!'},
+#       {'image': '/Users/pranavsastry/Downloads/apod_tok.png'},
+#       {'text': 'Hello again, world!'}
+#     ],
+#     [
+#       {'text': 'Hello, world!'}
+#     ]
+#   ])
+# )
+# print(embeddings)
+# print(len(embeddings))

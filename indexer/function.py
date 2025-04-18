@@ -1,3 +1,7 @@
+from .embed import CohereEmbedder
+
+
+
 class Function:
   def __init__(self, row_wise=True):
     self.row_wise = row_wise
@@ -16,6 +20,8 @@ class Function:
 class ContentEmbedder(Function):
   def __init__(self, embedder):
     super().__init__(row_wise=False)
+    if isinstance(embedder, CohereEmbedder) and embedder.multimodal:
+      raise ValueError('Cohere multimodal embedder not supported in the default content embedder! Please define a custom embedder function!')
     self.embedder = embedder
   
   def fn(self, rows):

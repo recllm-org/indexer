@@ -25,10 +25,10 @@ class GeminiEmbedder(Embedder):
     task,
     model='gemini-embedding-exp-03-07'
   ):
-    self.model = model
     if task not in GeminiEmbedder.SUPPORTED_TASKS:
       raise ValueError(f'Task {task} is not supported! Choose from {GeminiEmbedder.SUPPORTED_TASKS}.')
     self.task = task
+    self.model = model
     self.embedding_dim = int(EnvVars.get('EMBEDDING_DIM'))
     self.client = Client.gemini()
   
@@ -58,20 +58,23 @@ class CohereEmbedder(Embedder):
     self,
     task,
     model='embed-v4.0',
+    multimodal=False,
     embedding_types=['float']
   ):
-    self.model = model
     if task not in CohereEmbedder.SUPPORTED_TASKS:
       raise ValueError(f'Task {task} is not supported! Choose from {CohereEmbedder.SUPPORTED_TASKS}.')
-    self.input_type = task
+    self.task = task
+    self.model = model
+    self.multimodal = multimodal
     self.embedding_types = embedding_types
     self.client = Client.cohere()
   
   def embed(self, contents):
+    kwargs = {'inputs': contents} if self.multimodal else {'texts': contents}
     result = self.client.embed(
-      inputs=contents,
+      **kwargs,
       model=self.model,
-      input_type=self.input_type,
+      input_type=self.task,
       embedding_types=self.embedding_types
     )
     embeddings = [embedding for embedding in result.embeddings.float]
