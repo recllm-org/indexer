@@ -157,6 +157,7 @@ indexer = Indexer([
     ]
   )
 ])
+# indexer.update_stales()
 
 fetcher = ArxivFetcher()
 NUM_FETCHES = 1

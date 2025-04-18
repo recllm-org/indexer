@@ -31,7 +31,7 @@ class RecLLMItems(RecLLMTable):
 class Table:
   DEFAULT_TABLES = [RecLLMUsers, RecLLMItems]
 
-  def __init__(self, tablename, classname, tracked_columns, functions, RecLLMTable):
+  def __init__(self, tablename, classname, tracked_columns=None, functions=None, RecLLMTable=None):
     self.tablename = tablename
     self.classname = classname
     self.tracked_columns = tracked_columns or []
@@ -56,13 +56,38 @@ class Table:
       )
       recllm_rows.append(recllm_row)
     session.add_all(recllm_rows)
+  
+  def update_stales(self, rows, recllm_rows):
+    if self.RecLLMTable not in Table.DEFAULT_TABLES:
+      raise NotImplementedError('update_stales must be implemented for custom RecLLMTable!')
+    for row, recllm_row in zip(rows, recllm_rows):
+      row.unlock()
+      recllm_row.embedding = row.cache.embedding
+      recllm_row.context = row.cache.context
+      recllm_row.stale = False
 
+  def retrieve_stales(self, table_class, session, batch_size):
+    if self.RecLLMTable not in Table.DEFAULT_TABLES:
+      raise NotImplementedError('update_stales must be implemented for custom RecLLMTable!')
+    batched_rows = []
+    batched_recllm_rows = []
+    offset = 0
+    while True:
+      recllm_rows = session.query(self.RecLLMTable).filter(self.RecLLMTable.stale==True and self.RecLLMTable.tablename==self.tablename).offset(offset).limit(batch_size).all()
+      row_ids = [recllm_row.row_id for recllm_row in recllm_rows]
+      rows = session.query(table_class).filter(table_class.id.in_(row_ids)).all()
+      batched_rows.append(rows)
+      batched_recllm_rows.append(recllm_rows)
+      offset+=batch_size
+      if len(recllm_rows)<batch_size:
+        break
+    return batched_rows, batched_recllm_rows
 
 class UserTable(Table):
-  def __init__(self, tablename, classname, tracked_columns=None, functions=None, RecLLMTable=RecLLMUsers):
-    super().__init__(tablename, classname, tracked_columns, functions, RecLLMTable)
+  def __init__(self, RecLLMTable=RecLLMUsers, *args, **kwargs):
+    super().__init__(*args, **kwargs, RecLLMTable=RecLLMTable)
 
 
 class ItemTable(Table):
-  def __init__(self, tablename, classname, tracked_columns=None, functions=None, RecLLMTable=RecLLMItems):
-    super().__init__(tablename, classname, tracked_columns, functions, RecLLMTable)
+  def __init__(self, RecLLMTable=RecLLMItems, *args, **kwargs):
+    super().__init__(*args, **kwargs, RecLLMTable=RecLLMTable)
