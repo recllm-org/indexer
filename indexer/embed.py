@@ -69,7 +69,7 @@ class CohereEmbedder(Embedder):
   
   def embed(self, contents):
     result = self.client.embed(
-      texts=contents,
+      inputs=contents,
       model=self.model,
       input_type=self.input_type,
       embedding_types=self.embedding_types

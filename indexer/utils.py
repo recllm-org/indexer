@@ -1,5 +1,6 @@
 from dotenv import dotenv_values
 import os
+import base64
 
 
 
@@ -29,3 +30,12 @@ class EnvVars:
       return EnvVars.envars.get(key) or os.environ.get(key)
     else:
       return EnvVars.envars.get(key)
+
+
+def img2b64(img_path):
+  _, file_extension = os.path.splitext(img_path)
+  file_extension = file_extension[1:]
+  with open(img_path, 'rb') as fp:
+    img_b64 = base64.b64encode(fp.read()).decode('utf-8')
+    img_b64 = f'data:image/{file_extension};base64,{img_b64}'
+  return img_b64

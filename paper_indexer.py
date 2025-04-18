@@ -1,6 +1,7 @@
 from indexer import Client, ItemTable, Function, Indexer
 from indexer.embed import GeminiEmbedder, CohereEmbedder
 from indexer.function import ContentEmbedder
+from indexer.utils import img2b64
 from dataclasses import dataclass
 from google.genai.types import GenerateContentConfig
 from sqlalchemy import text
@@ -177,3 +178,20 @@ for _ in range(NUM_FETCHES):
     session.add_all(rows)
     session.commit()
     indexer.index(rows)
+
+
+# embedder = CohereEmbedder(task='search_document')
+# embeddings = embedder.embed(
+#   contents=[
+#     {'content': [
+#       {'type': 'text', 'text': 'Hello, world!'},
+#       {'type': 'image_url', 'image_url': {'url': img2b64('/Users/pranavsastry/Downloads/apod_tok.png')}},
+#       {'type': 'text', 'text': 'Hello again, world!'}
+#     ]},
+#     {'content': [
+#       {'type': 'text', 'text': 'Hello, world!'}
+#     ]}
+#   ]
+# )
+# print(embeddings)
+# print(len(embeddings))
