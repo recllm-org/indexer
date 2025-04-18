@@ -5,11 +5,11 @@ import supabase
 import cohere
 
 
+
 class Client:
 	@staticmethod
 	def supabase():
-		client = supabase.create_client(EnvVars.get('SUPABASE_URL'), EnvVars.get('SUPABASE_KEY'))
-		return client
+		return supabase.create_client(EnvVars.get('SUPABASE_URL'), EnvVars.get('SUPABASE_KEY'))
 	
 	@staticmethod
 	def gemini():

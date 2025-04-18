@@ -9,12 +9,25 @@ class Embedder:
 
 
 class GeminiEmbedder(Embedder):
+  SUPPORTED_TASKS = [
+    'SEMANTIC_SIMILARITY',
+    'CLASSIFICATION',
+    'CLUSTERING',
+    'RETRIEVAL_DOCUMENT',
+    'RETRIEVAL_QUERY',
+    'QUESTION_ANSWERING',
+    'FACT_VERIFICATION',
+    'CODE_RETRIEVAL_QUERY'
+  ]
+
   def __init__(
     self, 
-    model='gemini-embedding-exp-03-07', 
-    task='SEMANTIC_SIMILARITY'
+    task,
+    model='gemini-embedding-exp-03-07'
   ):
     self.model = model
+    if task not in GeminiEmbedder.SUPPORTED_TASKS:
+      raise ValueError(f'Task {task} is not supported! Choose from {GeminiEmbedder.SUPPORTED_TASKS}.')
     self.task = task
     self.embedding_dim = int(EnvVars.get('EMBEDDING_DIM'))
     self.client = Client.gemini()
@@ -33,14 +46,24 @@ class GeminiEmbedder(Embedder):
 
 
 class CohereEmbedder(Embedder):
+  SUPPORTED_TASKS = [
+    'search_document',
+    'search_query',
+    'classification',
+    'clustering',
+    'image'
+  ]
+
   def __init__(
     self,
+    task,
     model='embed-v4.0',
-    input_type='search_document', 
     embedding_types=['float']
   ):
     self.model = model
-    self.input_type = input_type
+    if task not in CohereEmbedder.SUPPORTED_TASKS:
+      raise ValueError(f'Task {task} is not supported! Choose from {CohereEmbedder.SUPPORTED_TASKS}.')
+    self.input_type = task
     self.embedding_types = embedding_types
     self.client = Client.cohere()
   

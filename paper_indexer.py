@@ -149,8 +149,10 @@ indexer = Indexer([
     tracked_columns=['title', 'abstract'],
     functions=[
       PaperContentContext(),
-      ContentEmbedder(GeminiEmbedder()),
-      # ContentEmbedder(CohereEmbedder())
+      ContentEmbedder(
+        GeminiEmbedder(task='RETRIEVAL_DOCUMENT'),
+        # CohereEmbedder(task='search_document')
+      )
     ]
   )
 ])
