@@ -39,3 +39,27 @@ def img2b64(img_path):
     img_b64 = base64.b64encode(fp.read()).decode('utf-8')
     img_b64 = f'data:image/{file_extension};base64,{img_b64}'
   return img_b64
+
+
+def construct_cohere_contents(contents):
+  """
+  [
+    [
+      {'text': },
+      {'image': }
+    ],
+  ]
+  """
+  cohere_contents = []
+  for content in contents:
+    cohere_content = {'content': []}
+    for actual_content in content:
+      assert len(actual_content)==1, 'Only one type of content should be specified!'
+      if actual_content.get('text'):
+        cohere_content['content'].append({'type': 'text', 'text': actual_content['text']})
+      elif actual_content.get('image'):
+        cohere_content['content'].append({'type': 'image_url', 'image_url': {'url': img2b64(actual_content['image'])}})
+      else:
+        raise ValueError('Invalid content type!')
+    cohere_contents.append(cohere_content)
+  return cohere_contents
