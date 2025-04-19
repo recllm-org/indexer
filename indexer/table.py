@@ -68,7 +68,7 @@ class Table:
 
   def retrieve_stales(self, table_class, session, batch_size):
     if self.RecLLMTable not in Table.DEFAULT_TABLES:
-      raise NotImplementedError('update_stales must be implemented for custom RecLLMTable!')
+      raise NotImplementedError('retrieve_stales must be implemented for custom RecLLMTable!')
     batched_rows = []
     batched_recllm_rows = []
     offset = 0
@@ -82,6 +82,7 @@ class Table:
       if len(recllm_rows)<batch_size:
         break
     return batched_rows, batched_recllm_rows
+
 
 class UserTable(Table):
   def __init__(self, RecLLMTable=RecLLMUsers, *args, **kwargs):
