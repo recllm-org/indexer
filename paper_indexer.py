@@ -1,6 +1,7 @@
-from indexer import Client, ItemTable, Function, Indexer
+from indexer import Client, UserTable, ItemTable, Function, Indexer
 from indexer.embed import GeminiEmbedder, CohereEmbedder
 from indexer.function import ContentEmbedder
+from indexer.db import BasicDatabase
 from indexer.utils import img2b64, construct_cohere_contents
 from dataclasses import dataclass
 from google.genai.types import GenerateContentConfig
@@ -123,18 +124,51 @@ class ArxivFetcher:
       raise err
 
 
+class UserContentContext(Function):
+  def __init__(self):
+    super().__init__()
+    self.basic_db = BasicDatabase({'papers': 'Papers', 'recllm_items': 'ItemTable'})
+    self.gemini_client = Client.gemini()
+  
+  def fn(self, row):
+    with self.basic_db.Session() as session:
+      papers = session.query(self.basic_db.Papers).filter(self.basic_db.Papers.id.in_(row.likes)).all()
+      items = session.query(self.basic_db.ItemTable).filter(self.basic_db.ItemTable.id.in_(row.likes)).filter(self.basic_db.ItemTable.tablename=='papers').all()
+      content = ''
+      for idx, (item, paper) in enumerate(zip(items, papers)):
+        content+=f'{idx+1}. {paper.title}\n{item.context}\n\n'
+    chat = self.gemini_client.chats.create(
+      model='gemini-2.0-flash-lite',
+      config=GenerateContentConfig(
+        system_instruction='''Based on the given user's liked papers, generate a profile for the user.
+        Profile should capture the user's interested topics and research interests.
+        It need not make grammatical sense, but should be scientifically accurate.
+        Be super concise, succint and less verbose.
+        Output should only contain the contents of the profile, no other text. Don't mention profile in the output.
+        '''
+      )
+    )
+    response = chat.send_message(content)
+    row.cache.content = response.text
+    row.cache.context = response.text
+
+
 class PaperContentContext(Function):
-  def fn(self, row, gemini_client=Client.gemini()):
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self.gemini_client = Client.gemini()
+  
+  def fn(self, row):
     # content
     content = f'{row.title}\n{row.abstract}'
     row.cache.content = content
     # context
-    chat = gemini_client.chats.create(
+    chat = self.gemini_client.chats.create(
       model='gemini-2.0-flash-lite',
       config=GenerateContentConfig(
         system_instruction='''Generate a super concise TL;DR (max 5 sentences) of the paper based on the title and abstract.
         It need not make grammatical sense, but should be scientifically accurate.
-        Output should only contain the contents of the TL;DR, no other text. Dont mention TL;DR in the output.
+        Output should only contain the contents of the TL;DR, no other text. Don't mention TL;DR in the output.
         '''
       )
     )
@@ -144,6 +178,17 @@ class PaperContentContext(Function):
 
 
 indexer = Indexer([
+  UserTable(
+    tablename='user',
+    classname='User',
+    tracked_columns=['likes'],
+    functions=[
+      UserContentContext(),
+      ContentEmbedder(
+        GeminiEmbedder(task='RETRIEVAL_QUERY')
+      )
+    ]
+  ),
   ItemTable(
     tablename='papers',
     classname='Papers',
@@ -151,48 +196,33 @@ indexer = Indexer([
     functions=[
       PaperContentContext(),
       ContentEmbedder(
-        GeminiEmbedder(task='RETRIEVAL_DOCUMENT'),
-        # CohereEmbedder(task='search_document')
+        GeminiEmbedder(task='RETRIEVAL_DOCUMENT')
       )
     ]
   )
 ])
-# indexer.update_stales()
 
-fetcher = ArxivFetcher()
-NUM_FETCHES = 1
-MAX_PER_FETCH = 1
-for _ in range(NUM_FETCHES):
-  papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH)
-  with indexer.db.Session() as session:
-    session.execute(text('SET session_replication_role = replica'))
-    rows = []
-    for paper in papers:
-      rows.append(indexer.db.Papers(
-        arxiv_id=paper.arxiv_id,
-        title=paper.title,
-        authors=paper.authors,
-        abstract=paper.abstract,
-        submitted_date=paper.submitted_date,
-        categories=paper.categories
-      ))
-    session.add_all(rows)
-    session.commit()
-    indexer.index(rows)
+# fetcher = ArxivFetcher()
+# NUM_FETCHES = 10
+# MAX_PER_FETCH = 25
+# for _ in range(NUM_FETCHES):
+#   papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH)
+#   with indexer.db.Session() as session:
+#     session.execute(text('SET session_replication_role = replica'))
+#     rows = []
+#     for paper in papers:
+#       rows.append(indexer.db.Papers(
+#         arxiv_id=paper.arxiv_id,
+#         title=paper.title,
+#         authors=paper.authors,
+#         abstract=paper.abstract,
+#         submitted_date=paper.submitted_date,
+#         categories=paper.categories
+#       ))
+#     session.add_all(rows)
+#     session.commit()
+#     indexer.index(rows)
 
-
-# embedder = CohereEmbedder(task='search_document')
-# embeddings = embedder.embed(
-#   contents=construct_cohere_contents([
-#     [
-#       {'text': 'Hello, world!'},
-#       {'image': '/Users/pranavsastry/Downloads/apod_tok.png'},
-#       {'text': 'Hello again, world!'}
-#     ],
-#     [
-#       {'text': 'Hello, world!'}
-#     ]
-#   ])
-# )
-# print(embeddings)
-# print(len(embeddings))
+with indexer.db.Session() as session:
+  rows = session.query(indexer.db.User).all()
+  indexer.index(rows)

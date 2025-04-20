@@ -14,7 +14,6 @@ class RecLLMTable(Base):
   __table_args__ = {'extend_existing': True}
   id = mapped_column(Integer, primary_key=True, autoincrement=True)
   tablename = mapped_column(String)
-  row_id = mapped_column(Integer)
   embedding = mapped_column(Vector(int(EnvVars.get('EMBEDDING_DIM'))))
   context = mapped_column(String)
   stale = mapped_column(Boolean, default=False)
@@ -22,10 +21,12 @@ class RecLLMTable(Base):
 
 class RecLLMUsers(RecLLMTable):
   __tablename__ = 'recllm_users'
+  row_id = mapped_column(String)
 
 
 class RecLLMItems(RecLLMTable):
   __tablename__ = 'recllm_items'
+  row_id = mapped_column(Integer)
 
 
 class Table:

@@ -7,11 +7,35 @@ from .utils import EnvVars
 
 
 
+def get_connection_string():
+  DB_USERNAME = EnvVars.get('DB_USERNAME')
+  DB_PASSWORD = EnvVars.get('DB_PASSWORD')
+  DB_HOST = EnvVars.get('DB_HOST')
+  DB_PORT = EnvVars.get('DB_PORT')
+  DB_NAME = EnvVars.get('DB_NAME')
+  return f'postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    
+
+class BasicDatabase:
+  def __init__(self, reqd_tables):
+    self.engine = create_engine(get_connection_string())
+    self.Session = sessionmaker(bind=self.engine)
+    self.get_existing_tables(reqd_tables)
+  
+  def get_existing_tables(self, reqd_tables):
+    metadata = MetaData()
+    metadata.reflect(bind=self.engine)
+    AutomapBase = automap_base(metadata=metadata)
+    AutomapBase.prepare()
+    for tablename, classname in reqd_tables.items():
+      self.__setattr__(classname, AutomapBase.classes[tablename])
+    
+
 class Database:
   def __init__(self, tables):
     self.tables = tables
     # sqlalchemy
-    self.engine = create_engine(self.get_connection_string())
+    self.engine = create_engine(get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
     self.enable_vector_extension()
     # tables
@@ -70,10 +94,10 @@ class Database:
     END;
     $$ LANGUAGE plpgsql;
     -- Drop the trigger if it already exists
-    DROP TRIGGER IF EXISTS {trigger_name} ON {tablename};
+    DROP TRIGGER IF EXISTS {trigger_name} ON "{tablename}";
     -- Create the trigger
     CREATE TRIGGER {trigger_name}
-    AFTER INSERT OR UPDATE OF {', '.join(tracked_columns)} OR DELETE ON {tablename}
+    AFTER INSERT OR UPDATE OF {', '.join(tracked_columns)} OR DELETE ON "{tablename}"
     FOR EACH ROW
     EXECUTE FUNCTION {function_name}();
     """
@@ -83,11 +107,3 @@ class Database:
     with self.Session() as session:
       session.execute(text('CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;'))
       session.commit()
-  
-  def get_connection_string(self):
-    DB_USERNAME = EnvVars.get('DB_USERNAME')
-    DB_PASSWORD = EnvVars.get('DB_PASSWORD')
-    DB_HOST = EnvVars.get('DB_HOST')
-    DB_PORT = EnvVars.get('DB_PORT')
-    DB_NAME = EnvVars.get('DB_NAME')
-    return f'postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
