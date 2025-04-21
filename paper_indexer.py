@@ -131,6 +131,11 @@ class UserContentContext(Function):
     self.gemini_client = Client.gemini()
   
   def fn(self, row):
+    if row.likes is None or len(row.likes)==0: # no need to embed
+      row.cache.content = None
+      row.cache.context = ''
+      return
+    
     with self.basic_db.Session() as session:
       papers = session.query(self.basic_db.Papers).filter(self.basic_db.Papers.id.in_(row.likes)).all()
       items = session.query(self.basic_db.ItemTable).filter(self.basic_db.ItemTable.id.in_(row.likes)).filter(self.basic_db.ItemTable.tablename=='papers').all()
@@ -222,6 +227,7 @@ indexer = Indexer([
 #     session.add_all(rows)
 #     session.commit()
 #     indexer.index(rows)
+
 
 with indexer.db.Session() as session:
   rows = session.query(indexer.db.User).all()

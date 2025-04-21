@@ -25,7 +25,18 @@ class ContentEmbedder(Function):
     self.embedder = embedder
   
   def fn(self, rows):
-    all_contents = [row.cache.content for row in rows]
-    embeddings = self.embedder.embed(all_contents)
-    for row, embedding in zip(rows, embeddings):
-      row.cache.embedding = embedding
+    rows2embed = []
+    rows2notembed = []
+    for row in rows:
+      if row.cache.content is not None:
+        rows2embed.append(row)
+      else:
+        rows2notembed.append(row)
+
+    if len(rows2embed)!=0:
+      all_contents = [row.cache.content for row in rows2embed]
+      embeddings = self.embedder.embed(all_contents)
+      for row, embedding in zip(rows2embed, embeddings):
+        row.cache.embedding = embedding
+    for row in rows2notembed:
+      row.cache.embedding = None
