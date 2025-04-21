@@ -6,6 +6,7 @@ from indexer.utils import img2b64, construct_cohere_contents
 from dataclasses import dataclass
 from google.genai.types import GenerateContentConfig
 from sqlalchemy import text
+from tqdm import tqdm
 import requests
 import time
 import xml.etree.ElementTree as ET
@@ -25,8 +26,8 @@ class ArxivFetcher:
   RETRY_DELAY = 1.0  # 1 second delay between retries
   ARXIV_NS = {'atom': 'http://www.w3.org/2005/Atom'}
 
-  def __init__(self):
-    self.start_index = 0
+  def __init__(self, start_index=0):
+    self.start_index = start_index
 
   @staticmethod
   def parse_papers(xml_data):
@@ -207,28 +208,32 @@ indexer = Indexer([
   )
 ])
 
-# fetcher = ArxivFetcher()
-# NUM_FETCHES = 10
-# MAX_PER_FETCH = 25
-# for _ in range(NUM_FETCHES):
-#   papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH)
-#   with indexer.db.Session() as session:
-#     session.execute(text('SET session_replication_role = replica'))
-#     rows = []
-#     for paper in papers:
-#       rows.append(indexer.db.Papers(
-#         arxiv_id=paper.arxiv_id,
-#         title=paper.title,
-#         authors=paper.authors,
-#         abstract=paper.abstract,
-#         submitted_date=paper.submitted_date,
-#         categories=paper.categories
-#       ))
-#     session.add_all(rows)
-#     session.commit()
-#     indexer.index(rows)
+
+fetcher = ArxivFetcher()
+NUM_FETCHES = 100
+MAX_PER_FETCH = 25
+for _ in tqdm(range(NUM_FETCHES)):
+  papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH, selected_categories=['cs.AI', 'cs.CL', 'cs.CV', 'cs.LG', 'cs.MA'])
+  with indexer.db.Session() as session:
+    session.execute(text('SET session_replication_role = replica'))
+    rows = []
+    for paper in papers:
+      rows.append(indexer.db.Papers(
+        arxiv_id=paper.arxiv_id,
+        title=paper.title,
+        authors=paper.authors,
+        abstract=paper.abstract,
+        submitted_date=paper.submitted_date,
+        categories=paper.categories
+      ))
+    session.add_all(rows)
+    session.flush()
+    for row in rows:
+      session.refresh(row)
+    indexer.index(rows)
+    session.commit()
 
 
-with indexer.db.Session() as session:
-  rows = session.query(indexer.db.User).all()
-  indexer.index(rows)
+# with indexer.db.Session() as session:
+#   rows = session.query(indexer.db.User).all()
+#   indexer.index(rows)

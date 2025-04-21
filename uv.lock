@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.12"
 
 [[package]]
@@ -475,6 +476,7 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
     { name = "supabase" },
+    { name = "tqdm" },
 ]
 
 [package.metadata]
@@ -486,6 +488,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = ">=1.1.0" },
     { name = "sqlalchemy", specifier = ">=2.0.40" },
     { name = "supabase", specifier = ">=2.15.0" },
+    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]
