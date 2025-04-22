@@ -465,33 +465,6 @@ wheels = [
 ]
 
 [[package]]
-name = "indexer"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "cohere" },
-    { name = "google-genai" },
-    { name = "pgvector" },
-    { name = "psycopg2-binary" },
-    { name = "python-dotenv" },
-    { name = "sqlalchemy" },
-    { name = "supabase" },
-    { name = "tqdm" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cohere", specifier = ">=5.15.0" },
-    { name = "google-genai", specifier = ">=1.10.0" },
-    { name = "pgvector", specifier = ">=0.4.0" },
-    { name = "psycopg2-binary", specifier = ">=2.9.10" },
-    { name = "python-dotenv", specifier = ">=1.1.0" },
-    { name = "sqlalchemy", specifier = ">=2.0.40" },
-    { name = "supabase", specifier = ">=2.15.0" },
-    { name = "tqdm", specifier = ">=4.67.1" },
-]
-
-[[package]]
 name = "iniconfig"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -904,6 +877,33 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1e/1e/c5f47928789cd5abb96e527929dea088213968f785983a231b3dfe08cc4f/realtime-2.4.2.tar.gz", hash = "sha256:760308d5310533f65a9098e0b482a518f6ad2f3c0f2723e83cf5856865bafc5d", size = 18802 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/b7/1b7651f353e14543c60cdfe40e3ea4dea412cfb2e93ab6384e72be813f05/realtime-2.4.2-py3-none-any.whl", hash = "sha256:0cc1b4a097acf9c0bd3a2f1998170de47744574c606617285113ddb3021e54ca", size = 22025 },
+]
+
+[[package]]
+name = "recllm-indexer"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "cohere" },
+    { name = "google-genai" },
+    { name = "pgvector" },
+    { name = "psycopg2-binary" },
+    { name = "python-dotenv" },
+    { name = "sqlalchemy" },
+    { name = "supabase" },
+    { name = "tqdm" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "cohere", specifier = ">=5.15.0" },
+    { name = "google-genai", specifier = ">=1.10.0" },
+    { name = "pgvector", specifier = ">=0.4.0" },
+    { name = "psycopg2-binary", specifier = ">=2.9.10" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.40" },
+    { name = "supabase", specifier = ">=2.15.0" },
+    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]
