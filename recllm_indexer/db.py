@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 from .utils import EnvVars
+from .table import RecLLMBase
 
 
 
@@ -36,6 +37,8 @@ class Database:
     # sqlalchemy
     self.engine = create_engine(get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
+    # tables
+    self.create_tables(RecLLMBase)
     self.enable_vector_extension()
     # triggers
     self.create_triggers()
@@ -50,9 +53,9 @@ class Database:
       session.commit()
   
   def get_trigger_command(self, table):
-    tablename = table.SATable.__tablename__
+    tablename = table.SATable.__table__.name
     tracked_columns = table.tracked_columns
-    recllm_tablename = table.RecLLMSATable.__tablename__
+    recllm_tablename = table.RecLLMSATable.__table__.name
     
     trigger_name = f'recllm_trigger_{tablename}'
     function_name = f'recllm_fn_{tablename}'

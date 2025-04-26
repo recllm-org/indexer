@@ -14,6 +14,7 @@ class RecLLMSATable(RecLLMBase):
   __abstract__ = True
   __table_args__ = {'extend_existing': True}
   id = mapped_column(Integer, primary_key=True, autoincrement=True)
+  row_id = mapped_column(Integer)
   tablename = mapped_column(String)
   embedding = mapped_column(Vector(int(EnvVars.get('EMBEDDING_DIM'))))
   context = mapped_column(String)
@@ -32,14 +33,14 @@ class Table:
       function.execute(records)
   
   def push(self, records, session):
-    if not isinstance(self.RecLLMSATable, RecLLMSATable):
+    if not issubclass(self.RecLLMSATable, RecLLMSATable):
       raise NotImplementedError('push must be implemented for custom RecLLMSATable!')
     recllm_rows = []
     for record in records:
       record.unlock()
       row = record.get_row()
       recllm_row = self.RecLLMSATable(
-        tablename=self.SATable.__tablename__,
+        tablename=self.SATable.__table__.name,
         row_id=row.id,
         embedding=record.cache.embedding,
         context=record.cache.context
@@ -48,7 +49,7 @@ class Table:
     session.add_all(recllm_rows)
   
   def update_stales(self, records, recllm_records):
-    if not isinstance(self.RecLLMSATable, RecLLMSATable):
+    if not issubclass(self.RecLLMSATable, RecLLMSATable):
       raise NotImplementedError('update_stales must be implemented for custom RecLLMSATable!')
     for record, recllm_record in zip(records, recllm_records):
       recllm_record.unlock()
@@ -58,7 +59,7 @@ class Table:
       recllm_row.stale = False
 
   def retrieve_stales(self, session, batch_size):
-    if not isinstance(self.RecLLMSATable, RecLLMSATable):
+    if not issubclass(self.RecLLMSATable, RecLLMSATable):
       raise NotImplementedError('retrieve_stales must be implemented for custom RecLLMSATable!')
     batched_records = []
     batched_recllm_records = []
