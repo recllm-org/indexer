@@ -178,30 +178,30 @@ class ItemTable(Table):
 
 
 indexer = Indexer([ItemTable()])
-# fetcher = ArxivFetcher()
-# NUM_FETCHES = 1
-# MAX_PER_FETCH = 1
-# for _ in tqdm(range(NUM_FETCHES)):
-#   papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH, selected_categories=['cs.AI', 'cs.CL', 'cs.CV', 'cs.LG', 'cs.MA'])
-#   with indexer.db.Session() as session:
-#     session.execute(text('SET session_replication_role = replica'))
-#     rows = []
-#     records = []
-#     for paper in papers:
-#       row = Papers(
-#         arxiv_id=paper.arxiv_id,
-#         title=paper.title,
-#         authors=paper.authors,
-#         abstract=paper.abstract,
-#         submitted_date=paper.submitted_date,
-#         categories=paper.categories
-#       )
-#       rows.append(row)
-#       records.append(Record(row, ItemTable()))
-#     session.add_all(rows)
-#     session.flush()
-#     for row in rows:
-#       session.refresh(row)
-#     indexer.index(records)
-#     session.commit()
-indexer.update_stales()
+fetcher = ArxivFetcher()
+NUM_FETCHES = 1
+MAX_PER_FETCH = 1
+for _ in tqdm(range(NUM_FETCHES)):
+  papers = fetcher.fetch_papers(max_results=MAX_PER_FETCH, selected_categories=['cs.AI', 'cs.CL', 'cs.CV', 'cs.LG', 'cs.MA'])
+  with indexer.db.Session() as session:
+    session.execute(text('SET session_replication_role = replica'))
+    rows = []
+    records = []
+    for paper in papers:
+      row = Papers(
+        arxiv_id=paper.arxiv_id,
+        title=paper.title,
+        authors=paper.authors,
+        abstract=paper.abstract,
+        submitted_date=paper.submitted_date,
+        categories=paper.categories
+      )
+      rows.append(row)
+      records.append(Record(row, ItemTable()))
+    session.add_all(rows)
+    session.flush()
+    for row in rows:
+      session.refresh(row)
+    indexer.index(records)
+    session.commit()
+# indexer.update_stales()

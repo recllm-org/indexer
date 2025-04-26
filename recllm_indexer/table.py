@@ -74,7 +74,7 @@ class Table:
       row_ids = [recllm_row.row_id for recllm_row in recllm_rows]
       rows = session.query(self.SATable).filter(self.SATable.id.in_(row_ids)).all()
       records = [Record(row, self) for row in rows]
-      recllm_records = [Record(recllm_row, self) for recllm_row in recllm_rows]
+      recllm_records = [Record(recllm_row) for recllm_row in recllm_rows]
       batched_records.append(records)
       batched_recllm_records.append(recllm_records)
       offset+=batch_size
