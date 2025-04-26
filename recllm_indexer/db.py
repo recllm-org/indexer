@@ -37,9 +37,9 @@ class Database:
     # sqlalchemy
     self.engine = create_engine(get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
+    self.enable_vector_extension()
     # tables
     self.create_tables(RecLLMBase)
-    self.enable_vector_extension()
     # triggers
     self.create_triggers()
   
