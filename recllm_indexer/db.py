@@ -32,8 +32,8 @@ class BasicDatabase:
     
 
 class Database:
-  def __init__(self, tables):
-    self.tables = tables
+  def __init__(self, Tables):
+    self.Tables = Tables
     # sqlalchemy
     self.engine = create_engine(get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
@@ -45,17 +45,18 @@ class Database:
   
   def create_triggers(self):
     commands = []
-    for table in self.tables:
-      commands.append(self.get_trigger_command(table))
+    for Table in self.Tables:
+      commands.append(Database.get_trigger_command(Table))
     unified_command = '\n'.join(commands)
     with self.Session() as session:
       session.execute(text(unified_command))
       session.commit()
   
-  def get_trigger_command(self, table):
-    tablename = table.SATable.__table__.name
-    tracked_columns = table.tracked_columns
-    recllm_tablename = table.RecLLMSATable.__table__.name
+  @staticmethod
+  def get_trigger_command(Table):
+    tablename = Table.SATable.__table__.name
+    recllm_tablename = Table.RecLLMSATable.__table__.name
+    tracked_columns = Table.tracked_columns
     
     trigger_name = f'recllm_trigger_{tablename}'
     function_name = f'recllm_fn_{tablename}'

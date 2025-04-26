@@ -21,26 +21,38 @@ class RecLLMSATable(RecLLMBase):
   stale = mapped_column(Boolean, default=False)
 
 
+
+def validate_table(func):
+  def wrapper(cls, *args, **kwargs):
+    assert cls.SATable is not None, 'SATable needs to be set!'
+    assert cls.RecLLMSATable is not None, 'RecLLMSATable needs to be set!'
+    if not issubclass(cls.RecLLMSATable, RecLLMSATable):
+      raise NotImplementedError('RecLLMSATable needs to be a subclass of RecLLMSATable!')
+    return func(cls, *args, **kwargs)
+  return wrapper
+
+
 class Table:
-  def __init__(self, SATable, RecLLMSATable, tracked_columns=None, functions=None):
-    self.SATable = SATable
-    self.RecLLMSATable = RecLLMSATable
-    self.tracked_columns = tracked_columns or []
-    self.functions = functions or []
+  SATable = None
+  RecLLMSATable = None
+  tracked_columns = []
+  functions = []
   
-  def execute_functions(self, records):
-    for function in self.functions:
+  @classmethod 
+  @validate_table
+  def execute_functions(cls, records):
+    for function in cls.functions:
       function.execute(records)
   
-  def push(self, records, session):
-    if not issubclass(self.RecLLMSATable, RecLLMSATable):
-      raise NotImplementedError('push must be implemented for custom RecLLMSATable!')
+  @classmethod
+  @validate_table
+  def push(cls, records, session):
     recllm_rows = []
     for record in records:
       record.unlock()
       row = record.get_row()
-      recllm_row = self.RecLLMSATable(
-        tablename=self.SATable.__table__.name,
+      recllm_row = cls.RecLLMSATable(
+        tablename=cls.SATable.__table__.name,
         row_id=row.id,
         embedding=record.cache.embedding,
         context=record.cache.context
@@ -48,9 +60,9 @@ class Table:
       recllm_rows.append(recllm_row)
     session.add_all(recllm_rows)
   
-  def update_stales(self, records, recllm_records):
-    if not issubclass(self.RecLLMSATable, RecLLMSATable):
-      raise NotImplementedError('update_stales must be implemented for custom RecLLMSATable!')
+  @classmethod
+  @validate_table
+  def update_stales(cls, records, recllm_records):
     for record, recllm_record in zip(records, recllm_records):
       recllm_record.unlock()
       recllm_row = recllm_record.get_row()
@@ -58,22 +70,22 @@ class Table:
       recllm_row.context = record.cache.context
       recllm_row.stale = False
 
-  def retrieve_stales(self, session, batch_size):
-    if not issubclass(self.RecLLMSATable, RecLLMSATable):
-      raise NotImplementedError('retrieve_stales must be implemented for custom RecLLMSATable!')
+  @classmethod
+  @validate_table
+  def retrieve_stales(cls, session, batch_size):
     batched_records = []
     batched_recllm_records = []
     offset = 0
     while True:
       recllm_rows = session\
-        .query(self.RecLLMSATable)\
-        .filter(self.RecLLMSATable.stale==True and self.RecLLMSATable.tablename==self.SATable.__tablename__)\
+        .query(cls.RecLLMSATable)\
+        .filter(cls.RecLLMSATable.stale==True and cls.RecLLMSATable.tablename==cls.SATable.__tablename__)\
         .offset(offset)\
         .limit(batch_size)\
         .all()
       row_ids = [recllm_row.row_id for recllm_row in recllm_rows]
-      rows = session.query(self.SATable).filter(self.SATable.id.in_(row_ids)).all()
-      records = [Record(row, self) for row in rows]
+      rows = session.query(cls.SATable).filter(cls.SATable.id.in_(row_ids)).all()
+      records = [Record(row, cls) for row in rows]
       recllm_records = [Record(recllm_row) for recllm_row in recllm_rows]
       batched_records.append(records)
       batched_recllm_records.append(recllm_records)
