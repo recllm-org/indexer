@@ -4,23 +4,6 @@ import base64
 
 
 
-class SanitizedRow:
-  def __init__(self, row, tablename, tracked_columns):
-    self._row = row
-    self._tablename = tablename
-    self._tracked_columns = tracked_columns
-    self._is_locked = True
-  
-  def unlock(self):
-    self._is_locked = False
-  
-  def __getattr__(self, attr):
-    ALLOWED_ATTRIBUTES = ['cache']
-    if ((self._is_locked) and (attr not in [*self._tracked_columns, *ALLOWED_ATTRIBUTES])):
-      raise AttributeError(f'Column {attr} not found in tracked columns of table {self._tablename}!')
-    return getattr(self._row, attr)
-
-
 class EnvVars:
   envars = dotenv_values('.env')
   

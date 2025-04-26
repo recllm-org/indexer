@@ -1,8 +1,6 @@
 from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
-from .table import Base
-from .client import Client
 from .utils import EnvVars
 
 
@@ -17,18 +15,19 @@ def get_connection_string():
     
 
 class BasicDatabase:
-  def __init__(self, reqd_tables):
+  def __init__(self):
     self.engine = create_engine(get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
-    self.get_existing_tables(reqd_tables)
   
-  def get_existing_tables(self, reqd_tables):
+  def pull_existing_tables(self, reqd_tables):
     metadata = MetaData()
     metadata.reflect(bind=self.engine)
     AutomapBase = automap_base(metadata=metadata)
     AutomapBase.prepare()
-    for tablename, classname in reqd_tables.items():
-      self.__setattr__(classname, AutomapBase.classes[tablename])
+    existing_tables = {}
+    for tablename in reqd_tables:
+      existing_tables[tablename] = AutomapBase.classes[tablename]
+    return existing_tables
     
 
 class Database:
@@ -38,19 +37,8 @@ class Database:
     self.engine = create_engine(get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
     self.enable_vector_extension()
-    # tables
-    self.get_existing_tables()
-    Base.metadata.create_all(self.engine) # this needs to be here to only create tables once
     # triggers
     self.create_triggers()
-  
-  def get_existing_tables(self):
-    metadata = MetaData()
-    metadata.reflect(bind=self.engine)
-    AutomapBase = automap_base(metadata=metadata)
-    AutomapBase.prepare()
-    for table in self.tables:
-      self.__setattr__(table.classname, AutomapBase.classes[table.tablename])
   
   def create_triggers(self):
     commands = []
@@ -62,9 +50,9 @@ class Database:
       session.commit()
   
   def get_trigger_command(self, table):
-    tablename = table.tablename
+    tablename = table.SATable.__tablename__
     tracked_columns = table.tracked_columns
-    recllm_tablename = table.RecLLMTable.__tablename__
+    recllm_tablename = table.RecLLMSATable.__tablename__
     
     trigger_name = f'recllm_trigger_{tablename}'
     function_name = f'recllm_fn_{tablename}'
@@ -107,3 +95,6 @@ class Database:
     with self.Session() as session:
       session.execute(text('CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;'))
       session.commit()
+  
+  def create_tables(self, Base):
+    Base.metadata.create_all(self.engine)
