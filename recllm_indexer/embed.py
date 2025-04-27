@@ -1,3 +1,17 @@
+"""
+Embeds contents into vector embeddings
+Choose from the most suitable supported task for your use case
+
+Gemini
+  - Text
+
+Cohere
+  - Text
+  - Images
+"""
+
+
+
 from .client import Client
 from .utils import EnvVars
 
@@ -9,6 +23,18 @@ class Embedder:
 
 
 class GeminiEmbedder(Embedder):
+  """
+  Supported tasks:
+    SEMANTIC_SIMILARITY
+    CLASSIFICATION
+    CLUSTERING
+    RETRIEVAL_DOCUMENT
+    RETRIEVAL_QUERY
+    QUESTION_ANSWERING
+    FACT_VERIFICATION
+    CODE_RETRIEVAL_QUERY
+  """
+
   SUPPORTED_TASKS = [
     'SEMANTIC_SIMILARITY',
     'CLASSIFICATION',
@@ -46,6 +72,17 @@ class GeminiEmbedder(Embedder):
 
 
 class CohereEmbedder(Embedder):
+  """
+  Supported tasks:
+    search_document
+    search_query
+    classification
+    clustering
+    image
+    
+  Enable multimodal embeddings by setting `multimodal=True`
+  """
+
   SUPPORTED_TASKS = [
     'search_document',
     'search_query',

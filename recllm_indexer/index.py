@@ -1,8 +1,27 @@
+"""
+Indexes records into the database
+Updates stale `Table` records in the database
+"""
+
+
 from .db import Database
 
 
 
 class Indexer:
+  """
+  `index`
+    - Groups records by `record.Table`
+    - Executes functions for each group
+    - Pushes records to the database
+  
+  `update_stales`
+    - Retrieves stale `Table` records from the database for each `Table` in batches
+    - For each batch
+      - Executes funtions on all stale records for each `Table`
+      - Updates stale records in the database for each `Table`
+  """
+
   def __init__(self, Tables):
     self.Tables = Tables
     self.db = Database(Tables)

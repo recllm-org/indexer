@@ -1,3 +1,14 @@
+"""
+`Function` modifies records either for each record separately or for all records at once
+  - Set `record_wise=True` to modify each record separately
+  - Set `record_wise=False` to modify all records at once
+  - `fn` must be implemented by the subclass
+
+`ContentEmbedder` is the default function for embedding contents into vector embeddings
+"""
+
+
+
 from .embed import CohereEmbedder
 
 
@@ -6,18 +17,25 @@ class Function:
   def __init__(self, record_wise=True):
     self.record_wise = record_wise
   
-  def fn(self, arg): # pass all kwargs required directly while implementing
+  def fn(self, arg):
     raise NotImplementedError('fn must be implemented!')
   
   def execute(self, records):
     if self.record_wise:
       for record in records:
-        self.fn(record) # other kwargs will be passed directly
+        self.fn(record)
     else:
-      self.fn(records) # other kwargs will be passed directly
+      self.fn(records)
 
 
 class ContentEmbedder(Function):
+  """
+  Embeds contents into vector embeddings
+    - Default embedder for embedding text only
+    - Only embeds `record.cache.content` of records only if they are not `None`
+    - Embeddings for each record are stored in `record.cache.embedding`
+  """
+
   def __init__(self, embedder):
     super().__init__(record_wise=False)
     if isinstance(embedder, CohereEmbedder) and embedder.multimodal:

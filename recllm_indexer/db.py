@@ -1,3 +1,17 @@
+"""
+Manages database connections and interaction with the db through `Session`
+
+BasicDatabase
+  - Can be used to pull up existing tables that aren't SQLAlchemy tables
+
+Database
+  - Enables postgres vector extension
+  - Creates tables that inherit from `RecLLMBase` if they don't exist
+  - Creates/updates triggers on tables
+"""
+
+
+
 from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
@@ -54,6 +68,14 @@ class Database:
   
   @staticmethod
   def get_trigger_command(Table):
+    """
+    Creates a trigger command for a table
+      - If a row in `SATable` is *updated*, then the corresponding row in `RecLLMSATable` is updated with `stale=True`
+        - Update triggers only if the updated columns are part of the `tracked_columns` of the table
+      - If a row in `SATable` is *deleted*, then the corresponding row in `RecLLMSATable` is deleted
+      - If a row is *inserted* into `SATable`, then a new row is inserted into `RecLLMSATable` with `stale=False`
+    """
+
     tablename = Table.SATable.__table__.name
     recllm_tablename = Table.RecLLMSATable.__table__.name
     tracked_columns = Table.tracked_columns

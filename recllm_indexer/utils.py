@@ -5,6 +5,16 @@ import base64
 
 
 class EnvVars:
+  """
+  Environment variables
+    - `envars` is a dictionary of environment variables
+    - `get` is a method to get an environment variable
+  
+  `get`
+    - If `include_os` is `True`, the environment variable is searched in both `os.environ` and `envars`
+    - If `include_os` is `False`, the environment variable is only searched in `envars`
+  """
+
   envars = dotenv_values('.env')
   
   @staticmethod
@@ -16,6 +26,9 @@ class EnvVars:
 
 
 def img2b64(img_path):
+  """
+  Converts an image path to a base64 encoded string
+  """
   _, file_extension = os.path.splitext(img_path)
   file_extension = file_extension[1:]
   with open(img_path, 'rb') as fp:
@@ -26,12 +39,13 @@ def img2b64(img_path):
 
 def construct_cohere_contents(contents):
   """
-  [
+  Constructs cohere specific contents given input of the form:
     [
-      {'text': },
-      {'image': }
-    ],
-  ]
+      [
+        {'text': },
+        {'image': }
+      ],
+    ]
   """
   cohere_contents = []
   for content in contents:

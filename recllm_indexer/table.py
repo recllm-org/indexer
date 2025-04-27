@@ -1,3 +1,11 @@
+"""
+`SATable` is a SQLAlchemy table
+`RecLLMSATable` is a SQLAlchemy table that stores the embeddings and contexts of the `SATable` rows
+`Table` is a wrapper that connects `SATable` with `RecLLMSATable` along with the required functions
+"""
+
+
+
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import Integer, String, Boolean
@@ -23,6 +31,10 @@ class RecLLMSATable(RecLLMBase):
 
 
 def validate_table(func):
+  """
+  Validates that the `SATable` and `RecLLMSATable` are set and that `RecLLMSATable` is a subclass of `RecLLMBase`
+  If not, raises an error
+  """
   def wrapper(cls, *args, **kwargs):
     assert cls.SATable is not None, 'SATable needs to be set!'
     assert cls.RecLLMSATable is not None, 'RecLLMSATable needs to be set!'
@@ -33,6 +45,13 @@ def validate_table(func):
 
 
 class Table:
+  """
+  Executes `Function`s on records
+  Pushes records to the database
+  Updates stale `RecLLMSATable` records
+  Retrieves stale `RecLLMSATable` records
+  """
+
   SATable = None
   RecLLMSATable = None
   tracked_columns = []
@@ -47,6 +66,11 @@ class Table:
   @classmethod
   @validate_table
   def push(cls, records, session):
+    """
+    Unlocks the records, gets their corresponding rows
+    Creates `RecLLMSATable` rows with the embeddings and contexts of the records
+    Pushes the `RecLLMSATable` rows to the database
+    """
     recllm_rows = []
     for record in records:
       record.unlock()
@@ -63,6 +87,11 @@ class Table:
   @classmethod
   @validate_table
   def update_stales(cls, records, recllm_records):
+    """
+    Unlocks the records, gets their corresponding rows
+    Updates the `RecLLMSATable` rows with the updated embeddings and contexts of the records
+    Sets the `RecLLMSATable` rows to stale=False
+    """
     for record, recllm_record in zip(records, recllm_records):
       recllm_record.unlock()
       recllm_row = recllm_record.get_row()
@@ -73,6 +102,15 @@ class Table:
   @classmethod
   @validate_table
   def retrieve_stales(cls, session, batch_size):
+    """
+    Retrieves stale `RecLLMSATable` records in batches
+    First filters only rows that are stale and belong to the `SATable`
+    Then, for each batch
+      - Gets the row ids of the records
+      - `offset` and `limit` are used to paginate through the rows
+      - Gets the rows of the records
+      - Creates records from the rows
+    """
     batched_records = []
     batched_recllm_records = []
     offset = 0

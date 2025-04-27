@@ -1,3 +1,13 @@
+"""
+Manages API clients
+
+Supported clients:
+	- Gemini: Text
+	- Cohere: Text + Images
+"""
+
+
+
 from .utils import EnvVars
 from google import genai
 import cohere
