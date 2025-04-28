@@ -34,21 +34,6 @@ class RecLLMSATable(RecLLMBase):
     super().__init_subclass__()
 
 
-
-def validate_table(func):
-  """
-  Validates that the `SATable` and `RecLLMSATable` are set and that `RecLLMSATable` is a subclass of `RecLLMBase`
-  If not, raises an error
-  """
-  def wrapper(cls, *args, **kwargs):
-    assert cls.SATable is not None, 'SATable needs to be set!'
-    assert cls.RecLLMSATable is not None, 'RecLLMSATable needs to be set!'
-    if not issubclass(cls.RecLLMSATable, RecLLMSATable):
-      raise NotImplementedError('RecLLMSATable needs to be a subclass of RecLLMSATable!')
-    return func(cls, *args, **kwargs)
-  return wrapper
-
-
 class Table:
   """
   Executes `Function`s on records
@@ -61,15 +46,20 @@ class Table:
   RecLLMSATable = None
   tracked_columns = []
   functions = []
+
+  def __init_subclass__(cls):
+    assert cls.SATable is not None, 'SATable needs to be set!'
+    assert cls.RecLLMSATable is not None, 'RecLLMSATable needs to be set!'
+    if not issubclass(cls.RecLLMSATable, RecLLMSATable):
+      raise NotImplementedError(f'{cls.RecLLMSATable} needs to be a subclass of RecLLMSATable!')
+    super().__init_subclass__()
   
-  @classmethod 
-  @validate_table
+  @classmethod
   def execute_functions(cls, records):
     for function in cls.functions:
       function.execute(records)
   
   @classmethod
-  @validate_table
   def push(cls, records, session):
     """
     Unlocks the records, gets their corresponding rows
@@ -90,7 +80,6 @@ class Table:
     session.add_all(recllm_rows)
   
   @classmethod
-  @validate_table
   def update_stales(cls, records, recllm_records):
     """
     Unlocks the records, gets their corresponding rows
@@ -105,7 +94,6 @@ class Table:
       recllm_row.stale = False
 
   @classmethod
-  @validate_table
   def retrieve_stales(cls, session, batch_size):
     """
     Retrieves stale `RecLLMSATable` records in batches
