@@ -1,13 +1,9 @@
 """
 Manages database connections and interaction with the db through `Session`
 
-BasicDatabase
-  - Can be used to pull up existing tables that aren't SQLAlchemy tables
-
 Database
   - Enables postgres vector extension
-  - Creates tables that inherit from `RecLLMBase` if they don't exist
-  - Creates/updates triggers on tables
+  - Methods to pull existing tables via `pull_existing_tables` and create tables with triggers via `create_table`
 """
 
 
@@ -16,7 +12,6 @@ from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
 from .utils import EnvVars, get_tablename
-from .table import RecLLMBase
 
 
 
@@ -29,42 +24,11 @@ def get_connection_string():
   return f'postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     
 
-class BasicDatabase:
+class Database:
   def __init__(self):
     self.engine = create_engine(get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
-  
-  def pull_existing_tables(self, reqd_tables):
-    metadata = MetaData()
-    metadata.reflect(bind=self.engine)
-    AutomapBase = automap_base(metadata=metadata)
-    AutomapBase.prepare()
-    existing_tables = {}
-    for tablename in reqd_tables:
-      existing_tables[tablename] = AutomapBase.classes[tablename]
-    return existing_tables
-    
-
-class Database:
-  def __init__(self, Tables):
-    self.Tables = Tables
-    # sqlalchemy
-    self.engine = create_engine(get_connection_string())
-    self.Session = sessionmaker(bind=self.engine)
     self.enable_vector_extension()
-    # tables
-    self.create_tables(RecLLMBase)
-    # triggers
-    self.create_triggers()
-  
-  def create_triggers(self):
-    commands = []
-    for Table in self.Tables:
-      commands.append(Database.get_trigger_command(Table))
-    unified_command = '\n'.join(commands)
-    with self.Session() as session:
-      session.execute(text(unified_command))
-      session.commit()
   
   @staticmethod
   def get_trigger_command(Table):
@@ -122,5 +86,18 @@ class Database:
       session.execute(text('CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;'))
       session.commit()
   
-  def create_tables(self, Base):
+  def pull_existing_tables(self, reqd_tables):
+    metadata = MetaData()
+    metadata.reflect(bind=self.engine)
+    AutomapBase = automap_base(metadata=metadata)
+    AutomapBase.prepare()
+    existing_tables = {}
+    for tablename in reqd_tables:
+      existing_tables[tablename] = AutomapBase.classes[tablename]
+    return existing_tables
+  
+  def create_table(self, Table, Base):
     Base.metadata.create_all(self.engine)
+    with self.Session() as session:
+      session.execute(text(Database.get_trigger_command(Table)))
+      session.commit()

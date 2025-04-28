@@ -13,6 +13,7 @@ from .record import Record
 from .utils import get_tablename
 
 
+
 class RecLLMBase(DeclarativeBase): pass
 
 
@@ -30,6 +31,7 @@ class RecLLMSATable(RecLLMBase):
       raise NotImplementedError(f'`embedding` needs to be set in {cls.__name__}!')
     if not hasattr(cls, '__tablename__'):
       raise NotImplementedError(f'`__tablename__` needs to be set in {cls.__name__}!')
+    super().__init_subclass__()
 
 
 
