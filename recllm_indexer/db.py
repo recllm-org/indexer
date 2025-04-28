@@ -103,3 +103,6 @@ class Database:
       session.execute(text(f'ALTER TABLE {get_tablename(Table.RecLLMSATable)} ENABLE ROW LEVEL SECURITY;'))
       session.execute(text(self.get_trigger_command(Table)))
       session.commit()
+  
+  def close(self):
+    self.engine.dispose()
