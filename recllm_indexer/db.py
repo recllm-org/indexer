@@ -25,13 +25,13 @@ def get_connection_string():
     
 
 class Database:
-  def __init__(self):
+  def __init__(self, config=None):
+    self.config = config
     self.engine = create_engine(get_connection_string())
     self.Session = sessionmaker(bind=self.engine)
     self.enable_vector_extension()
   
-  @staticmethod
-  def get_trigger_command(Table):
+  def get_trigger_command(self, Table):
     """
     Creates a trigger command for a table
       - If a row in `SATable` is *updated*, then the corresponding row in `RecLLMSATable` is updated with `stale=True`
@@ -44,8 +44,8 @@ class Database:
     recllm_tablename = get_tablename(Table.RecLLMSATable)
     tracked_columns = Table.tracked_columns
     
-    trigger_name = f'recllm_trigger_{tablename}'
-    function_name = f'recllm_fn_{tablename}'
+    trigger_name = f'recllm_trigger_{self.config.app}_{tablename}'
+    function_name = f'recllm_fn_{self.config.app}_{tablename}'
     command = f"""
     -- Create or replace the trigger function
     CREATE OR REPLACE FUNCTION {function_name}()
@@ -99,5 +99,7 @@ class Database:
   def create_table(self, Table, Base):
     Base.metadata.create_all(self.engine)
     with self.Session() as session:
-      session.execute(text(Database.get_trigger_command(Table)))
+      session.execute(text(f'ALTER TABLE {get_tablename(Table.SATable)} ENABLE ROW LEVEL SECURITY;'))
+      session.execute(text(f'ALTER TABLE {get_tablename(Table.RecLLMSATable)} ENABLE ROW LEVEL SECURITY;'))
+      session.execute(text(self.get_trigger_command(Table)))
       session.commit()

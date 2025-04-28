@@ -130,7 +130,7 @@ class ArxivFetcher:
 # ------------------------------------------------------------
 config = Config('paperstok', 1536)
 
-db = Database()
+db = Database(config)
 existing_tables = db.pull_existing_tables(['papers'])
 Papers = existing_tables['papers']
 
