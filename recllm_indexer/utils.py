@@ -25,6 +25,17 @@ class EnvVars:
       return EnvVars.envars.get(key)
 
 
+class Config:
+  """
+  Config for the application
+    - `app` is the name of the application
+    - `embedding_dim` is the dimension of the `embedding` column
+  """
+  def __init__(self, app, embedding_dim):
+    self.app = app
+    self.embedding_dim = embedding_dim
+
+
 def img2b64(img_path):
   """
   Converts an image path to a base64 encoded string

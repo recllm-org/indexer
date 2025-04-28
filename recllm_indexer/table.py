@@ -7,11 +7,9 @@
 
 
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import mapped_column
 from sqlalchemy import Integer, String, Boolean
-from pgvector.sqlalchemy import Vector
 from .record import Record
-from .utils import EnvVars
 
 
 
@@ -24,9 +22,14 @@ class RecLLMSATable(RecLLMBase):
   id = mapped_column(Integer, primary_key=True, autoincrement=True)
   row_id = mapped_column(Integer)
   tablename = mapped_column(String)
-  embedding = mapped_column(Vector(int(EnvVars.get('EMBEDDING_DIM'))))
   context = mapped_column(String)
   stale = mapped_column(Boolean, default=False)
+
+  def __init_subclass__(cls):
+    if not hasattr(cls, 'embedding'):
+      raise NotImplementedError(f'`embedding` needs to be set in {cls.__name__}!')
+    if not hasattr(cls, '__tablename__'):
+      raise NotImplementedError(f'`__tablename__` needs to be set in {cls.__name__}!')
 
 
 

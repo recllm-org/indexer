@@ -18,6 +18,14 @@ from .utils import EnvVars
 
 
 class Embedder:
+  def __init__(self, task, embedding_dim, model):
+    cls = type(self)
+    if task not in cls.SUPPORTED_TASKS:
+      raise ValueError(f'Task {task} is not supported! Choose from {cls.SUPPORTED_TASKS}.')
+    self.task = task
+    self.embedding_dim = embedding_dim
+    self.model = model
+  
   def embed(self, contents):
     raise NotImplementedError('embed must be implemented!')
 
@@ -49,13 +57,10 @@ class GeminiEmbedder(Embedder):
   def __init__(
     self, 
     task,
-    model='gemini-embedding-exp-03-07'
+    embedding_dim,
+    model='gemini-embedding-exp-03-07',
   ):
-    if task not in GeminiEmbedder.SUPPORTED_TASKS:
-      raise ValueError(f'Task {task} is not supported! Choose from {GeminiEmbedder.SUPPORTED_TASKS}.')
-    self.task = task
-    self.model = model
-    self.embedding_dim = int(EnvVars.get('EMBEDDING_DIM'))
+    super().__init__(task, embedding_dim, model)
     self.client = Client.gemini()
   
   def embed(self, contents):
@@ -94,14 +99,12 @@ class CohereEmbedder(Embedder):
   def __init__(
     self,
     task,
+    embedding_dim,
     model='embed-v4.0',
     multimodal=False,
     embedding_types=['float']
   ):
-    if task not in CohereEmbedder.SUPPORTED_TASKS:
-      raise ValueError(f'Task {task} is not supported! Choose from {CohereEmbedder.SUPPORTED_TASKS}.')
-    self.task = task
-    self.model = model
+    super().__init__(task, embedding_dim, model)
     self.multimodal = multimodal
     self.embedding_types = embedding_types
     self.client = Client.cohere()
