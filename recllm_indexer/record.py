@@ -5,7 +5,7 @@ Wrapper around a SQLAlchemy table row
 
 
 from types import SimpleNamespace
-
+from .utils import get_tablename
 
 
 class Record:
@@ -44,5 +44,5 @@ class Record:
   
   def __getattr__(self, attr):
     if (self.__is_locked) and (self.Table is not None) and (attr not in self.Table.tracked_columns):
-      raise AttributeError(f'Column {attr} not found in tracked columns of table {self.Table.SATable.__tablename__}!')
+      raise AttributeError(f'Column {attr} not found in tracked columns of table {get_tablename(self.Table.SATable)}!')
     return getattr(self.__row, attr)

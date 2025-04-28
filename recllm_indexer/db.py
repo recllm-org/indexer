@@ -15,7 +15,7 @@ Database
 from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.automap import automap_base
-from .utils import EnvVars
+from .utils import EnvVars, get_tablename
 from .table import RecLLMBase
 
 
@@ -75,9 +75,9 @@ class Database:
       - If a row in `SATable` is *deleted*, then the corresponding row in `RecLLMSATable` is deleted
       - If a row is *inserted* into `SATable`, then a new row is inserted into `RecLLMSATable` with `stale=False`
     """
-
-    tablename = Table.SATable.__table__.name
-    recllm_tablename = Table.RecLLMSATable.__table__.name
+    
+    tablename = get_tablename(Table.SATable)
+    recllm_tablename = get_tablename(Table.RecLLMSATable)
     tracked_columns = Table.tracked_columns
     
     trigger_name = f'recllm_trigger_{tablename}'

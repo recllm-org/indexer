@@ -37,6 +37,15 @@ class Config:
     self.embedding_dim = embedding_dim
 
 
+def get_tablename(SATable):
+  if hasattr(SATable, '__table__'):
+    return SATable.__table__.name
+  elif hasattr(SATable, '__tablename__'):
+    return SATable.__tablename__
+  else:
+    raise ValueError(f'Table {SATable} has no __table__ or __tablename__ attribute')
+
+
 def imgurl2b64(img_url):
   """
   Converts an image url to a base64 encoded string

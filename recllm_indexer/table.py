@@ -10,7 +10,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import mapped_column
 from sqlalchemy import Integer, String, Boolean
 from .record import Record
-
+from .utils import get_tablename
 
 
 class RecLLMBase(DeclarativeBase): pass
@@ -79,7 +79,7 @@ class Table:
       record.unlock()
       row = record.get_row()
       recllm_row = cls.RecLLMSATable(
-        tablename=cls.SATable.__table__.name,
+        tablename=get_tablename(cls.SATable),
         row_id=row.id,
         embedding=record.cache.embedding,
         context=record.cache.context
