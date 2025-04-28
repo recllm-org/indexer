@@ -2,7 +2,7 @@ from recllm_indexer import Client, Function, Indexer, Table, RecLLMSATable
 from recllm_indexer.embed import GeminiEmbedder, CohereEmbedder
 from recllm_indexer.function import ContentEmbedder
 from recllm_indexer.db import BasicDatabase
-from recllm_indexer.utils import img2b64, construct_cohere_contents, Config
+from recllm_indexer.utils import construct_cohere_contents, Config
 from recllm_indexer.record import Record
 from sqlalchemy.orm import mapped_column
 from pgvector.sqlalchemy import Vector
