@@ -3,32 +3,20 @@ Manages database connections and interaction with the db through `Session`
 
 Database
   - Enables postgres vector extension
-  - Methods to pull existing tables via `pull_existing_tables` and create tables with triggers via `create_table`
+  - Create tables with triggers via `create_table`
 """
 
 
 
-from sqlalchemy import create_engine, MetaData, text
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.automap import automap_base
-from .utils import EnvVars, get_tablename
+from sqlalchemy import text
+from recllm_core.db import BasicDatabase
+from .utils import get_tablename
 
-
-
-def get_connection_string():
-  DB_USERNAME = EnvVars.get('DB_USERNAME')
-  DB_PASSWORD = EnvVars.get('DB_PASSWORD')
-  DB_HOST = EnvVars.get('DB_HOST')
-  DB_PORT = EnvVars.get('DB_PORT')
-  DB_NAME = EnvVars.get('DB_NAME')
-  return f'postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     
 
-class Database:
-  def __init__(self, config=None):
-    self.config = config
-    self.engine = create_engine(get_connection_string())
-    self.Session = sessionmaker(bind=self.engine)
+class Database(BasicDatabase):
+  def __init__(self):
+    super().__init__()
     self.enable_vector_extension()
   
   def get_trigger_command(self, Table):
@@ -44,8 +32,8 @@ class Database:
     recllm_tablename = get_tablename(Table.RecLLMSATable)
     tracked_columns = Table.tracked_columns
     
-    trigger_name = f'recllm_trigger_{self.config.app}_{tablename}'
-    function_name = f'recllm_fn_{self.config.app}_{tablename}'
+    trigger_name = f'recllm_trigger_{tablename}'
+    function_name = f'recllm_fn_{tablename}'
     command = f"""
     -- Create or replace the trigger function
     CREATE OR REPLACE FUNCTION {function_name}()
@@ -86,16 +74,6 @@ class Database:
       session.execute(text('CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;'))
       session.commit()
   
-  def pull_existing_tables(self, reqd_tables):
-    metadata = MetaData()
-    metadata.reflect(bind=self.engine)
-    AutomapBase = automap_base(metadata=metadata)
-    AutomapBase.prepare()
-    existing_tables = {}
-    for tablename in reqd_tables:
-      existing_tables[tablename] = AutomapBase.classes[tablename]
-    return existing_tables
-  
   def create_table(self, Table, Base):
     Base.metadata.create_all(self.engine)
     with self.Session() as session:
@@ -103,6 +81,3 @@ class Database:
       session.execute(text(f'ALTER TABLE {get_tablename(Table.RecLLMSATable)} ENABLE ROW LEVEL SECURITY;'))
       session.execute(text(self.get_trigger_command(Table)))
       session.commit()
-  
-  def close(self):
-    self.engine.dispose()

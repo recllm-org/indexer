@@ -13,7 +13,6 @@ Cohere
 
 
 from .client import Client
-from .utils import EnvVars
 
 
 

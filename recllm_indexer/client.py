@@ -8,7 +8,7 @@ Supported clients:
 
 
 
-from .utils import EnvVars
+from recllm_core.utils import EnvVars
 from google import genai
 import cohere
 
